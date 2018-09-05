@@ -26,7 +26,7 @@ bot.on('ready', function (evt) {
 });
 
 
-function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID){
+function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, userID){
     var opts = {"channelID": channelID }
     if (!beginningOfMessages) opts.before = prevMessageID;                     
      
@@ -36,7 +36,7 @@ function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, cha
             for(var i = 0; i < messageArray.length; i++){    
                 // Store the last message border for the next loop
                 if (i == messageArray.length-1) prevMessageID = messageArray[i]['id'];                         
-                if (messageArray[i]['author']['id'] === FREDDY_ID) {
+                if (messageArray[i]['author']['id'] === userID) {
                     console.log(messageArray[i]['content'])
                     batch.push(messageArray[i]['content'])               
                 } 
@@ -69,7 +69,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     var beginningOfMessages = true;
     var prevMessageID = '';
 
-    var allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID);
+    var allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, FREDDY_ID);
     Promise.resolve(allMessages).then(function (value){
         var formattedMessageLog = "";
         for (var i = 0; i < value.length; i++){
