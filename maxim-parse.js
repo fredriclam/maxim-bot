@@ -24,22 +24,40 @@ bot.on('ready', function (evt) {
     logger.info(bot.username + ' - (' + bot.id + ')');
 });
 
-function getMessagesCallback(beginningOfMessages, prevMessageID, channelID ){
-    bot.getMessages(opts, function (error, messageArray) {                
-        var batch = [];
-        for(var i = 0; i < messageArray.length; i++){    
-            // Store the last message border for the next loop
-            if (i == messageArray.length-1) prevMessageID = messageArray[i]['id'];                 
-            if (messageArray[i]['author']['id'] === FREDDY_ID){  
-                console.log(messageArray[i]['content']);              
-                batch.push(messageArray[i]['content']);
+var asyncCount = 0;
+function getMessagesCallback(stockMessages, beginningOfMessages, prevMessageID, channelID){
+
+    var opts = {"channelID": channelID }
+    if (!beginningOfMessages){
+        opts.before = prevMessageID;           
+        console.log(asyncCount++ + " ---- prevMessageID: " + prevMessageID + "\n");         
+    }    
+    return new Promise(function(resolve) {
+        bot.getMessages(opts, function (error, messageArray) {                
+            var batch = [];            
+            for(var i = 0; i < messageArray.length; i++){    
+                // Store the last message border for the next loop
+                if (i == messageArray.length-1) prevMessageID = messageArray[i]['id'];                         
+                if (messageArray[i]['author']['id'] === FREDDY_ID) batch.push(messageArray[i]['content'])                
+            }                       
+            beginningOfMessages = false;      
+            
+            if(batch.length == 0){
+                resolve(true, 0);
             }
-        }                       
-        if(batch.length == 0){
-            reject();
+            else {            
+                stockMessages.push(batch);             
+                // Resolve(empty results?, previous message ID);
+                resolve(false, prevMessageID);
+            }
+        });       
+    }).then(function (empty, prevMessageID){
+        if (!empty){
+            return getMessagesCallback(stockMessages, beginningOfMessages, prevMessageID, channelID);
         }
-        
+        return stockMessages;
     });
+ 
 }
 bot.on('message', function (user, userID, channelID, message, evt) {
     // Our bot needs to know if it will execute a command
@@ -47,35 +65,8 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     var stockMessages = [];
     var beginningOfMessages = true;
     var prevMessageID = '';
+    console.log(getMessagesCallback(stockMessages, beginningOfMessages, prevMessageID, channelID));
     
-    var promiseLoop = new Promise( function(resolve,reject){
-        var opts = {"channelID": channelID }
-        if (!beginningOfMessages){
-            opts.before = prevMessageID;            
-        }
-        bot.getMessages(opts, function (error, messageArray) {                
-            var batch = [];
-            for(var i = 0; i < messageArray.length; i++){    
-                // Store the last message border for the next loop
-                if (i == messageArray.length-1) prevMessageID = messageArray[i]['id'];                 
-                if (messageArray[i]['author']['id'] === FREDDY_ID){                                    
-                    batch.push(messageArray[i]['content']);
-                }
-            }                       
-            // Resolve(empty, previousMessageID);
-            if(batch.length == 0){
-                resolve(true, 0);
-            }
-            else {
-                stockMessages.push(batch);       
-                resolve(false, prevMessageID);
-            }
-        });        
-    });
-
-    promiseLoop.then(function(empty, prevMessageID){
-        
-    })
 
     // fs.writeFileSync("messages.log", stockMessages.toString());
     // console.log(stockMessages);
