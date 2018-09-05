@@ -32,7 +32,7 @@ bot.on('ready', function (evt) {
     logger.info(bot.username + ' - (' + bot.id + ')');
     bot.setPresence({
       game:{
-      	name: "Hide and Seek"
+      	name: "for mnhn329" // "Hide and Seek with "
       }
     })
 });
@@ -55,7 +55,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       if (err) throw err;
       quipList = data.toString().split('\n');
       quipListFiltered = quipList.filter(quip => quip.length > 0 && quip.charAt(0) != '!')
-      botMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())]
+      botMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())] + ' :maxsnuzyen:';
     });
 
     let msg = message.toLowerCase();
@@ -78,6 +78,11 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             if (bot.users[newLearningTargetId] !== undefined){
               bot.learningTargetId = newLearningTargetId
               logger.info('New learning target: ' + bot.users[newLearningTargetId])
+              bot.setPresence({
+                game:{
+                	name: "for " + bot.users[newLearningTargetId].username
+                }
+              })
               bot.sendMessage({
                 to: channelID,
                 message: 'Now following <@' + newLearningTargetId + '> :maximwhatsthis:'
@@ -117,6 +122,13 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           logger.info('Timer started');
         }
       }
+      else if (msg.includes(bot.id)){
+        bot.sendMessage({
+            to: channelID,
+            message: "Hi! I'm a bot that simulates @mnhn329. Switch who I simulate with !learn <mention>!"
+        });
+      }
+
     }
 
     // Timer cancel
