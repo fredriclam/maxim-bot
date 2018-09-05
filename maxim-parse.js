@@ -24,34 +24,58 @@ bot.on('ready', function (evt) {
     logger.info(bot.username + ' - (' + bot.id + ')');
 });
 
+function getMessagesCallback(beginningOfMessages, prevMessageID, channelID ){
+    bot.getMessages(opts, function (error, messageArray) {                
+        var batch = [];
+        for(var i = 0; i < messageArray.length; i++){    
+            // Store the last message border for the next loop
+            if (i == messageArray.length-1) prevMessageID = messageArray[i]['id'];                 
+            if (messageArray[i]['author']['id'] === FREDDY_ID){  
+                console.log(messageArray[i]['content']);              
+                batch.push(messageArray[i]['content']);
+            }
+        }                       
+        if(batch.length == 0){
+            reject();
+        }
+        
+    });
+}
 bot.on('message', function (user, userID, channelID, message, evt) {
     // Our bot needs to know if it will execute a command
     // It will listen for messages that will start with `!`    
     var stockMessages = [];
     var beginningOfMessages = true;
     var prevMessageID = '';
-
-    do {
-        var batch = [];
-        var opts = {"channelID": channelID, "limit": 100}
+    
+    var promiseLoop = new Promise( function(resolve,reject){
+        var opts = {"channelID": channelID }
         if (!beginningOfMessages){
             opts.before = prevMessageID;            
         }
         bot.getMessages(opts, function (error, messageArray) {                
+            var batch = [];
             for(var i = 0; i < messageArray.length; i++){    
                 // Store the last message border for the next loop
                 if (i == messageArray.length-1) prevMessageID = messageArray[i]['id'];                 
-                if (messageArray[i]['author']['id'] === FREDDY_ID){  
-                    console.log(messageArray[i]['content']);              
+                if (messageArray[i]['author']['id'] === FREDDY_ID){                                    
                     batch.push(messageArray[i]['content']);
                 }
-            }            
-        });
-        stockMessages.push(batch);
-        console.log("THIS IS BATCH TESTTTTTTT_____ " + batch + " " + batch.length);
-        beginningOfMessages = false;
-    }
-    while(batch.length != 0);
+            }                       
+            // Resolve(empty, previousMessageID);
+            if(batch.length == 0){
+                resolve(true, 0);
+            }
+            else {
+                stockMessages.push(batch);       
+                resolve(false, prevMessageID);
+            }
+        });        
+    });
+
+    promiseLoop.then(function(empty, prevMessageID){
+        
+    })
 
     // fs.writeFileSync("messages.log", stockMessages.toString());
     // console.log(stockMessages);
