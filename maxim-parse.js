@@ -1,4 +1,5 @@
 var Discord = require('discord.io');
+
 var logger = require('winston');
 var auth = require('./auth.json');
 var fs = require('fs');
@@ -24,71 +25,60 @@ bot.on('ready', function (evt) {
     logger.info(bot.username + ' - (' + bot.id + ')');
 });
 
-var asyncCount = 0;
-function getMessagesCallback(stockMessages, beginningOfMessages, prevMessageID, channelID){
 
+function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID){
     var opts = {"channelID": channelID }
-    if (!beginningOfMessages){
-        opts.before = prevMessageID;           
-        console.log(asyncCount++ + " ---- prevMessageID: " + prevMessageID + "\n");         
-    }    
+    if (!beginningOfMessages) opts.before = prevMessageID;                     
+     
     return new Promise(function(resolve) {
         bot.getMessages(opts, function (error, messageArray) {                
-            var batch = [];            
+            var batch = [];                      
             for(var i = 0; i < messageArray.length; i++){    
                 // Store the last message border for the next loop
                 if (i == messageArray.length-1) prevMessageID = messageArray[i]['id'];                         
-                if (messageArray[i]['author']['id'] === FREDDY_ID) batch.push(messageArray[i]['content'])                
+                if (messageArray[i]['author']['id'] === FREDDY_ID) {
+                    console.log(messageArray[i]['content'])
+                    batch.push(messageArray[i]['content'])               
+                } 
             }                       
             beginningOfMessages = false;      
             
-            if(batch.length == 0){
-                resolve(true, 0);
+            if(batch.length == 0){                
+                resolve('');
             }
             else {            
-                stockMessages.push(batch);             
-                // Resolve(empty results?, previous message ID);
-                resolve(false, prevMessageID);
+                allBatches.push(batch); 
+                // KEY MISTAKE: RESOLVE ALWAYS ACCEPTS ONE ARGUMENT!!!!!!!!!            
+                // Resolve( previous message ID);                
+                resolve(prevMessageID);
             }
         });       
-    }).then(function (empty, prevMessageID){
-        if (!empty){
-            return getMessagesCallback(stockMessages, beginningOfMessages, prevMessageID, channelID);
-        }
-        return stockMessages;
+    }).then(function (prevMessageID){
+        if (prevMessageID != ''){                     
+            return getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID);
+        } 
+        return allBatches;
     });
  
 }
+
 bot.on('message', function (user, userID, channelID, message, evt) {
     // Our bot needs to know if it will execute a command
     // It will listen for messages that will start with `!`    
-    var stockMessages = [];
+    var allBatches = [];
     var beginningOfMessages = true;
     var prevMessageID = '';
-    console.log(getMessagesCallback(stockMessages, beginningOfMessages, prevMessageID, channelID));
+
+    var allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID);
+    Promise.resolve(allMessages).then(function (value){
+        var formattedMessageLog = "";
+        for (var i = 0; i < value.length; i++){
+            for(var j = 0; j < value[i].length; j++){
+                formattedMessageLog += value[i][j] + "\n";
+            }
+            formattedMessageLog += "\n";
+        }
+        fs.writeFileSync("messages.log", formattedMessageLog);
+    })
     
-
-    // fs.writeFileSync("messages.log", stockMessages.toString());
-    // console.log(stockMessages);
-
-    if (message.substring(0, 8) == '@mnhn329') {
-        bot.sendMessage({
-            to: channelID,
-            message: 'afk max here :^)'
-        });
-        // var args = message.substring(1).split(' ');
-        // var cmd = args[0];
-       
-        // args = args.splice(1);
-        // switch(cmd) {
-        //     // !ping
-        //     case 'ping':
-        //         bot.sendMessage({
-        //             to: channelID,
-        //             message: 'Pong!'
-        //         });
-        //     break;
-        //     // Just add any case commands if you want to..
-        //  }
-     }
 });
