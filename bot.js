@@ -1,9 +1,11 @@
 var Discord = require('discord.io');
 var logger = require('winston');
 var auth = require('./auth.json');
+var fs = require('fs');
 
 // Maxim data
-const maximUserId = 163475101046538240;
+const MAX_ID = "163475101046538240";
+const FREDDY_ID = "265678340692770816";
 
 // Configure logger settings
 logger.remove(logger.transports.Console);
@@ -26,20 +28,18 @@ bot.on('ready', function (evt) {
     logger.info(bot.username + ' - (' + bot.id + ')');
 
 });
+
 bot.on('message', function (user, userID, channelID, message, evt) {
-    // Our bot needs to know if it will execute a command
-    // It will listen for messages that will start with `!`
+    // Log message to console
+    logger.info(message);
 
-    // trahs
-    // if (message.substring(0, 1) == '!') {
-    // console.log(userID);
-    console.log(message);
+    asyncParseToLog(channelID, FREDDY_ID)
 
-    // Lower case command
-    var cmd = message.toLowerCase();
+    // Pick message COMBAK
 
     // Capture @mnhn329
-    if (cmd.includes(String(maximUserId)) || cmd.includes('@mnhn329')) {
+    let cmd = message.toLowerCase();
+    if (cmd.includes(MAX_ID) || cmd.includes('@mnhn329')) {
       if (!bot.isTimerOn){
         // Start timer and payload if not on
         bot.isTimerOn = true;
@@ -60,14 +60,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         }, 5 * 1000);
         console.log('Timer started');
       }
-
-      // bot.sendMessage({
-      //     to: channelID,
-      //     message: 'I see you pinged maxim :maximwhatsthis:'
-      // });
     }
 
-    if (cmd.includes('!maximback') || userID == maximUserId){
+    if (cmd.includes('!maximback') || String(userID) == MAX_ID){
       try{
         clearTimeout(timer);
         console.log('Timer stopped');
@@ -77,15 +72,61 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       }
       bot.isTimerOn = false;
     }
-
-    // switch(cmd) {
-    //     // !ping
-    //     case '@mnhn329':
-    //         bot.sendMessage({
-    //             to: channelID,
-    //             message: 'Pong!'
-    //         });
-    //     break;
-    //     // Just add any case commands if you want to..
-    //  }
 });
+
+// Asynchronously parse target user's chat history into log
+function asyncParseToLog(channelID, targetUserID){
+  // Read chat history
+  var allBatches = [];
+  var beginningOfMessages = true;
+  var prevMessageID = '';
+
+  var allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID);
+  Promise.resolve(allMessages).then(function (value){
+      var formattedMessageLog = "";
+      for (var i = 0; i < value.length; i++){
+          for(var j = 0; j < value[i].length; j++){
+              formattedMessageLog += value[i][j] + "\n";
+          }
+          formattedMessageLog += "\n";
+      }
+      fs.writeFileSync("messages.log", formattedMessageLog);
+  })
+}
+
+// Jacky's get messages callback
+function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID){
+    var opts = {"channelID": channelID }
+    if (!beginningOfMessages) opts.before = prevMessageID;
+
+    return new Promise(function(resolve) {
+        bot.getMessages(opts, function (error, messageArray) {
+            var batch = [];
+            for(var i = 0; i < messageArray.length; i++){
+                // Store the last message border for the next loop
+                if (i == messageArray.length-1) prevMessageID = messageArray[i]['id'];
+                if (messageArray[i]['author']['id'] === targetUserID) {
+                    console.log(messageArray[i]['content'])
+                    batch.push(messageArray[i]['content'])
+                }
+            }
+            beginningOfMessages = false;
+
+            if(batch.length == 0){
+                resolve('');
+            }
+            else {
+                allBatches.push(batch);
+                // KEY MISTAKE: RESOLVE ALWAYS ACCEPTS ONE ARGUMENT!!!!!!!!!
+                // Resolve( previous message ID);
+                resolve(prevMessageID);
+            }
+        });
+    }).then(function (prevMessageID){
+        if (prevMessageID != ''){
+            return getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID);
+        }
+        return allBatches;
+    });
+
+}
