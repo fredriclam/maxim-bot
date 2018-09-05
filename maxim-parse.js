@@ -43,7 +43,7 @@ function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, cha
             }                       
             beginningOfMessages = false;      
             
-            if(batch.length == 0){                
+            if(messageArray.length == 0){                
                 resolve('');
             }
             else {            
