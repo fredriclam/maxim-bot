@@ -21,12 +21,18 @@ var bot = new Discord.Client({
 
 // Flag to check for timer
 bot.isTimerOn = false;
+// Default learning target
+bot.learningTargetId = FREDDY_ID;
 
 bot.on('ready', function (evt) {
     logger.info('Connected');
     logger.info('Logged in as: ');
     logger.info(bot.username + ' - (' + bot.id + ')');
 
+    bot.setPresence( {
+      idle_since: null,
+      game: "Hide and seek"
+    } )
 });
 
 bot.on('message', function (user, userID, channelID, message, evt) {
@@ -37,9 +43,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
     // Pick message COMBAK
 
+
     // Capture @mnhn329
-    let cmd = message.toLowerCase();
-    if (cmd.includes(MAX_ID) || cmd.includes('@mnhn329')) {
+    let msg = message.toLowerCase();
+    if (msg.includes(MAX_ID) || msg.includes('@mnhn329')) {
       if (!bot.isTimerOn){
         // Start timer and payload if not on
         bot.isTimerOn = true;
@@ -58,17 +65,63 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             });
             bot.isTimerOn = false;
         }, 5 * 1000);
-        console.log('Timer started');
+        logger.info('Timer started');
       }
     }
 
-    if (cmd.includes('!maximback') || String(userID) == MAX_ID){
+    // Capture ! commands
+    if (msg.substring(0, 1) == '!') {
+      let args = msg.substring(1).split(' ');
+      let cmd = args[0];
+      // logger.info(args);
+      switch(cmd) {
+        case 'learn':
+          // Extract largest number, whether or not enclosed by <@ ... >
+          let re = new RegExp(/\D*(\d+)/);
+          extractedId = re.exec(args[1]);
+
+          if (!(extractedId  === null)){
+            newLearningTargetId = extractedId[1];
+            console.log(newLearningTargetId);
+            // Update server list
+            bot.getAllUsers((error) => { /* No error handling */ } );
+            // Accept new learning target if user exists
+            if (bot.users[newLearningTargetId] !== undefined){
+              bot.learningTargetId = newLearningTargetId
+              logger.info('New learning target: ' + bot.users[newLearningTargetId])
+              console.log(bot.users[newLearningTargetId]);
+
+              bot.sendMessage({
+                to: channelID,
+                message: 'Now following <@' + newLearningTargetId + '>'
+              });
+            }
+            else{
+              logger.info('Invalid learning target selected')
+              bot.sendMessage({
+                to: channelID,
+                message: "<@" + userID + "> Wait, who's that?"
+              });
+            }
+          }
+          else {
+            bot.sendMessage({
+              to: channelID,
+              message: 'Technically, that ID is invalid :maximwhatsthis:'
+            });
+          }
+          break;
+      }
+    }
+
+    // Timer cancel
+    if (msg.includes('!maximback') || String(userID) == MAX_ID){
       try{
         clearTimeout(timer);
-        console.log('Timer stopped');
+        logger.info('Timer stopped');
       }
       catch(error){
-        console.log("hehe probably timer didn't exist");
+        logger.info("hehe probably timer didn't exist");
       }
       bot.isTimerOn = false;
     }
@@ -106,7 +159,7 @@ function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, cha
                 // Store the last message border for the next loop
                 if (i == messageArray.length-1) prevMessageID = messageArray[i]['id'];
                 if (messageArray[i]['author']['id'] === targetUserID) {
-                    console.log(messageArray[i]['content'])
+                    // logger.info(messageArray[i]['content'])
                     batch.push(messageArray[i]['content'])
                 }
             }
