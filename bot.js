@@ -39,8 +39,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     var cmd = message.toLowerCase();
 
     // Capture @mnhn329
-    if (cmd.includes('@mnhn329')){
-
+    if (cmd.includes(String(maximUserId)) || cmd.includes('@mnhn329')) {
       if (!bot.isTimerOn){
         // Start timer and payload if not on
         bot.isTimerOn = true;
@@ -57,6 +56,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 to: channelID,
                 message: botMessage
             });
+            bot.isTimerOn = false;
         }, 5 * 1000);
         console.log('Timer started');
       }
