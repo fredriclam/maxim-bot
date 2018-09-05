@@ -1,0 +1,8 @@
+{
+  "name": "maxim-bot",
+  "version": "1.0.0",
+  "description": "max-bot",
+  "main": "bot.js",
+  "author": "fredstah and bois",
+  "dependencies": {}
+}
