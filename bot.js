@@ -6,6 +6,8 @@ var fs = require('fs');
 // Maxim data
 const MAX_ID = "163475101046538240";
 const FREDDY_ID = "265678340692770816";
+// Default quip
+defaultMessage = 'Maxim afk :maximwhatsthis:';
 
 // Configure logger settings
 logger.remove(logger.transports.Console);
@@ -28,47 +30,35 @@ bot.on('ready', function (evt) {
     logger.info('Connected');
     logger.info('Logged in as: ');
     logger.info(bot.username + ' - (' + bot.id + ')');
-
-    bot.setPresence( {
-      idle_since: null,
-      game: "Hide and seek"
-    } )
+    bot.setPresence({
+      game:{
+      	name: "Hide and Seek"
+      }
+    })
 });
 
 bot.on('message', function (user, userID, channelID, message, evt) {
+    // Ignore self messages
+    if (userID == bot.id){
+      logger.info('Own message detected! Ignoring.')
+      return null;
+    }
     // Log message to console
     logger.info(message);
+    // Read chat history
+    asyncParseToLog(channelID, bot.learningTargetId)
 
-    asyncParseToLog(channelID, FREDDY_ID)
+    // Pick quip for bot
+    let quipList;
+    botMessage = defaultMessage;
+    fs.readFile( __dirname + '/messages.log', function (err, data) {
+      if (err) throw err;
+      quipList = data.toString().split('\n');
+      quipListFiltered = quipList.filter(quip => quip.length > 0 && quip.charAt(0) != '!')
+      botMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())]
+    });
 
-    // Pick message COMBAK
-
-
-    // Capture @mnhn329
     let msg = message.toLowerCase();
-    if (msg.includes(MAX_ID) || msg.includes('@mnhn329')) {
-      if (!bot.isTimerOn){
-        // Start timer and payload if not on
-        bot.isTimerOn = true;
-
-        // Set default message
-        defaultMessage = 'Maxim afk :maximwhatsthis:';
-
-        // Jacky change message payload // // COMBAK: change botMessage to the next message delivered
-        botMessage = defaultMessage;
-
-        timer = setTimeout (function () {
-            // use the message's channel (TextChannel) to send a new message
-            bot.sendMessage({
-                to: channelID,
-                message: botMessage
-            });
-            bot.isTimerOn = false;
-        }, 5 * 1000);
-        logger.info('Timer started');
-      }
-    }
-
     // Capture ! commands
     if (msg.substring(0, 1) == '!') {
       let args = msg.substring(1).split(' ');
@@ -79,28 +69,25 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           // Extract largest number, whether or not enclosed by <@ ... >
           let re = new RegExp(/\D*(\d+)/);
           extractedId = re.exec(args[1]);
-
+          // Id validity check and logic
           if (!(extractedId  === null)){
             newLearningTargetId = extractedId[1];
-            console.log(newLearningTargetId);
-            // Update server list
-            bot.getAllUsers((error) => { /* No error handling */ } );
+            // Update server's user list
+            bot.getAllUsers((err) => { if (err) logger.warn(err); } );
             // Accept new learning target if user exists
             if (bot.users[newLearningTargetId] !== undefined){
               bot.learningTargetId = newLearningTargetId
               logger.info('New learning target: ' + bot.users[newLearningTargetId])
-              console.log(bot.users[newLearningTargetId]);
-
               bot.sendMessage({
                 to: channelID,
-                message: 'Now following <@' + newLearningTargetId + '>'
+                message: 'Now following <@' + newLearningTargetId + '> :maximwhatsthis:'
               });
             }
             else{
-              logger.info('Invalid learning target selected')
+              logger.warn('Invalid learning target selected')
               bot.sendMessage({
                 to: channelID,
-                message: "<@" + userID + "> Wait, who's that?"
+                message: "<@" + userID + "> Wait, who's that? Tag 'em'"
               });
             }
           }
@@ -111,6 +98,24 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             });
           }
           break;
+      }
+    }
+    else {
+      // Capture @mnhn329 messages
+      if (msg.includes(MAX_ID) || msg.includes('@mnhn329')) {
+        if (!bot.isTimerOn){
+          // Start timer and payload if not on
+          bot.isTimerOn = true;
+          timer = setTimeout (function () {
+              // use the message's channel (TextChannel) to send a new message
+              bot.sendMessage({
+                  to: channelID,
+                  message: botMessage
+              });
+              bot.isTimerOn = false;
+          }, 5 * 1000);
+          logger.info('Timer started');
+        }
       }
     }
 
@@ -181,5 +186,4 @@ function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, cha
         }
         return allBatches;
     });
-
 }
