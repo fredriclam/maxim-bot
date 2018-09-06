@@ -44,9 +44,11 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       return null;
     }
     // Log message to console
+    logger.info(userID);
     logger.info(message);
+    
     // Read chat history
-    asyncParseToLog(channelID, bot.learningTargetId)
+   asyncParseToLog(channelID, bot.learningTargetId)
 
     // Pick quip for bot
     let quipList;
@@ -65,6 +67,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       let cmd = args[0];
       // logger.info(args);
       switch(cmd) {
+        case 'parse':
+          // Parse targeted user 
+          verifyUserThenParse(userID, channelID, args[1], bot);
+          break;
         case 'learn':
           // Extract largest number, whether or not enclosed by <@ ... >
           let re = new RegExp(/\D*(\d+)/);
@@ -135,18 +141,17 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 // Asynchronously parse target user's chat history into log
 function asyncParseToLog(channelID, targetUserID){
   // Read chat history
-  var allBatches = [];
-  var beginningOfMessages = true;
-  var prevMessageID = '';
+  let allBatches = [];
+  let beginningOfMessages = true;
+  let prevMessageID = '';
 
-  var allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID);
+  let allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID);
   Promise.resolve(allMessages).then(function (value){
-      var formattedMessageLog = "";
-      for (var i = 0; i < value.length; i++){
-          for(var j = 0; j < value[i].length; j++){
+      let formattedMessageLog = "";
+      for (let i = 0; i < value.length; i++){
+          for(let j = 0; j < value[i].length; j++){
               formattedMessageLog += value[i][j] + "\n";
-          }
-          formattedMessageLog += "\n";
+          }          
       }
       fs.writeFileSync("messages.log", formattedMessageLog);
   })
@@ -154,13 +159,13 @@ function asyncParseToLog(channelID, targetUserID){
 
 // Jacky's get messages callback
 function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID){
-    var opts = {"channelID": channelID }
+    let opts = {"channelID": channelID }
     if (!beginningOfMessages) opts.before = prevMessageID;
 
     return new Promise(function(resolve) {
         bot.getMessages(opts, function (error, messageArray) {
-            var batch = [];
-            for(var i = 0; i < messageArray.length; i++){
+            let batch = [];
+            for(let i = 0; i < messageArray.length; i++){
                 // Store the last message border for the next loop
                 if (i == messageArray.length-1) prevMessageID = messageArray[i]['id'];
                 if (messageArray[i]['author']['id'] === targetUserID) {
@@ -175,15 +180,40 @@ function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, cha
             }
             else {
                 allBatches.push(batch);
-                // KEY MISTAKE: RESOLVE ALWAYS ACCEPTS ONE ARGUMENT!!!!!!!!!
-                // Resolve( previous message ID);
                 resolve(prevMessageID);
             }
         });
     }).then(function (prevMessageID){
         if (prevMessageID != ''){
-            return getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID);
+            return getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID);
         }
         return allBatches;
     });
+}
+
+function verifyUserThenParse(userID, channelID, cmdArgs, bot){
+  // Taking from Fred's switch case block
+  // Extract largest number, whether or not enclosed by <@ ... >
+  let re = new RegExp(/\D*(\d+)/);
+  let extractedId = re.exec(cmdArgs);
+  // Id validity check and logic
+  if (!(extractedId  === null)){    
+    // Update server's user list
+    bot.getAllUsers((err) => { if (err) logger.warn(err); } );    
+    if (bot.users[extractedId[1]] !== undefined){ // Accept new learning target if user exist            
+      
+      logger.info('Valid target selected')
+      asyncParseToLog(channelID, extractedId[1])
+      bot.sendMessage({
+        to: userID,
+        message: '<@' + extractedId[1] + '>' + " \'s messages parsed"
+      });
+    }
+    else{
+      logger.warn('Invalid parsing target selected')
+    }
+  }
+  else {
+    logger.invalid("Invalid ID")
+  }
 }
