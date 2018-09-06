@@ -26,17 +26,17 @@ bot.on('ready', function (evt) {
 });
 
 
-function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, userID){
-    var opts = {"channelID": channelID }
+function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID){
+    let opts = {"channelID": channelID }
     if (!beginningOfMessages) opts.before = prevMessageID;                     
      
     return new Promise(function(resolve) {
         bot.getMessages(opts, function (error, messageArray) {                
-            var batch = [];                      
-            for(var i = 0; i < messageArray.length; i++){    
+            let batch = [];                      
+            for(let i = 0; i < messageArray.length; i++){    
                 // Store the last message border for the next loop
                 if (i == messageArray.length-1) prevMessageID = messageArray[i]['id'];                         
-                if (messageArray[i]['author']['id'] === userID) {
+                if (messageArray[i]['author']['id'] === targetUserID) {
                     console.log(messageArray[i]['content'])
                     batch.push(messageArray[i]['content'])               
                 } 
@@ -55,7 +55,7 @@ function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, cha
         });       
     }).then(function (prevMessageID){
         if (prevMessageID != ''){                     
-            return getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID);
+            return getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID);
         } 
         return allBatches;
     });
@@ -65,15 +65,15 @@ function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, cha
 bot.on('message', function (user, userID, channelID, message, evt) {
     // Our bot needs to know if it will execute a command
     // It will listen for messages that will start with `!`    
-    var allBatches = [];
-    var beginningOfMessages = true;
-    var prevMessageID = '';
+    let allBatches = [];
+    let beginningOfMessages = true;
+    let prevMessageID = '';
 
-    var allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, FREDDY_ID);
+    let allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, FREDDY_ID);
     Promise.resolve(allMessages).then(function (value){
-        var formattedMessageLog = "";
-        for (var i = 0; i < value.length; i++){
-            for(var j = 0; j < value[i].length; j++){
+        let formattedMessageLog = "";
+        for (let i = 0; i < value.length; i++){
+            for(let j = 0; j < value[i].length; j++){
                 formattedMessageLog += value[i][j] + "\n";
             }
             formattedMessageLog += "\n";
