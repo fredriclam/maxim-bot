@@ -48,7 +48,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     logger.info(message);
     
     // Read chat history
-   asyncParseToLog(channelID, bot.learningTargetId)
+   // asyncParseToLog(channelID, bot.learningTargetId)
 
     // Pick quip for bot
     let quipList;
@@ -141,20 +141,27 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 // Asynchronously parse target user's chat history into log
 function asyncParseToLog(channelID, targetUserID){
   // Read chat history
+  logger.info("Channel ID: " + channelID + ", targetUserID: " + targetUserID);
   let allBatches = [];
   let beginningOfMessages = true;
   let prevMessageID = '';
 
+  let formattedMessageLog = "";
   let allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID);
   Promise.resolve(allMessages).then(function (value){
-      let formattedMessageLog = "";
+      
       for (let i = 0; i < value.length; i++){
           for(let j = 0; j < value[i].length; j++){
               formattedMessageLog += value[i][j] + "\n";
           }          
       }
-      fs.writeFileSync("messages.log", formattedMessageLog);
+      fs.writeFileSync("messages.log", formattedMessageLog, (err) => {
+        if (err) throw err;
+        console.log('The file has been saved!');
+      });
   })
+
+  return formattedMessageLog;
 }
 
 // Jacky's get messages callback
@@ -175,7 +182,7 @@ function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, cha
             }
             beginningOfMessages = false;
 
-            if(batch.length == 0){
+            if(messageArray.length == 0){
                 resolve('');
             }
             else {
@@ -192,6 +199,7 @@ function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, cha
 }
 
 function verifyUserThenParse(userID, channelID, cmdArgs, bot){
+  
   // Taking from Fred's switch case block
   // Extract largest number, whether or not enclosed by <@ ... >
   let re = new RegExp(/\D*(\d+)/);
