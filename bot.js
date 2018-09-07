@@ -55,7 +55,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       if (err) throw err;
       quipList = data.toString().split('\n');
       quipListFiltered = quipList.filter(quip => quip.length > 0 && quip.charAt(0) != '!')
-      botMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())] + ' :maxsnuzyen:';
+      botMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())] + ' <:maxsnuzyen:484989053129719808>';
     });
 
     let msg = message.toLowerCase();
@@ -85,21 +85,21 @@ bot.on('message', function (user, userID, channelID, message, evt) {
               })
               bot.sendMessage({
                 to: channelID,
-                message: 'Now following <@' + newLearningTargetId + '> :maximwhatsthis:'
+                message: 'Now following <@' + newLearningTargetId + '> <:maximwhatsthis:484993112729583618>'
               });
             }
             else{
               logger.warn('Invalid learning target selected')
               bot.sendMessage({
                 to: channelID,
-                message: "<@" + userID + "> Wait, who's that? Tag 'em'"
+                message: "<@" + userID + "> Wait, who's that? Tag 'em"
               });
             }
           }
           else {
             bot.sendMessage({
               to: channelID,
-              message: 'Technically, that ID is invalid :maximwhatsthis:'
+              message: 'Technically, that ID is invalid <:maximwhatsthis:484993112729583618>'
             });
           }
           break;
