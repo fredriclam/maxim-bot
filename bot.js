@@ -24,7 +24,7 @@ var bot = new Discord.Client({
 // Flag to check for timer
 bot.isTimerOn = false;
 // Default learning target
-bot.learningTargetId = FREDDY_ID;
+bot.learningTargetId = MAX_ID;
 
 bot.on('ready', function (evt) {
     logger.info('Connected');
@@ -35,6 +35,9 @@ bot.on('ready', function (evt) {
       	name: "for mnhn329" // "Hide and Seek with "
       }
     })
+    // Read chat history
+    asyncParseToLog("215694187977375746", bot.learningTargetId);
+    
 });
 
 bot.on('message', function (user, userID, channelID, message, evt) {
@@ -45,9 +48,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     }
     // Log message to console
     logger.info(message);
-    // Read chat history
-    asyncParseToLog(channelID, bot.learningTargetId)
-
+  
     // Pick quip for bot
     let quipList;
     botMessage = defaultMessage;
@@ -128,9 +129,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             message: "Hi! I'm a bot that simulates @mnhn329. Switch who I simulate with !learn <mention>!"
         });
       }
-
     }
-
     // Timer cancel
     if (msg.includes('!maximback') || String(userID) == MAX_ID){
       try{
@@ -147,32 +146,35 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 // Asynchronously parse target user's chat history into log
 function asyncParseToLog(channelID, targetUserID){
   // Read chat history
-  var allBatches = [];
-  var beginningOfMessages = true;
-  var prevMessageID = '';
-
-  var allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID);
+let allBatches = [];
+let beginningOfMessages = true;
+let prevMessageID = '';
+let formattedMessageLog = "";
+let allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID);
   Promise.resolve(allMessages).then(function (value){
-      var formattedMessageLog = "";
-      for (var i = 0; i < value.length; i++){
-          for(var j = 0; j < value[i].length; j++){
+      
+      for (let i = 0; i < value.length; i++){
+          for(let j = 0; j < value[i].length; j++){
               formattedMessageLog += value[i][j] + "\n";
           }
-          formattedMessageLog += "\n";
       }
-      fs.writeFileSync("messages.log", formattedMessageLog);
-  })
+      fs.writeFileSync("messages.log", formattedMessageLog, (err) => {
+        if (err) throw err;
+        logger.info('The file has been saved!');
+      }); 
+    })
+      return formattedMessageLog;
 }
 
 // Jacky's get messages callback
 function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID){
-    var opts = {"channelID": channelID }
+  let opts = {"channelID": channelID }
     if (!beginningOfMessages) opts.before = prevMessageID;
 
     return new Promise(function(resolve) {
         bot.getMessages(opts, function (error, messageArray) {
-            var batch = [];
-            for(var i = 0; i < messageArray.length; i++){
+          let batch = [];
+            for(let i = 0; i < messageArray.length; i++){
                 // Store the last message border for the next loop
                 if (i == messageArray.length-1) prevMessageID = messageArray[i]['id'];
                 if (messageArray[i]['author']['id'] === targetUserID) {
@@ -182,19 +184,19 @@ function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, cha
             }
             beginningOfMessages = false;
 
-            if(batch.length == 0){
+            if(messageArray.length == 0){
                 resolve('');
             }
             else {
                 allBatches.push(batch);
-                // KEY MISTAKE: RESOLVE ALWAYS ACCEPTS ONE ARGUMENT!!!!!!!!!
-                // Resolve( previous message ID);
                 resolve(prevMessageID);
             }
         });
+    }).catch( error => {
+      logger.info("Callback struggle: " + error);
     }).then(function (prevMessageID){
         if (prevMessageID != ''){
-            return getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID);
+            return getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID,targetUserID);
         }
         return allBatches;
     });
