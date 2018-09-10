@@ -24,7 +24,7 @@ var bot = new Discord.Client({
 // Flag to check for timer
 bot.isTimerOn = false;
 // Default learning target
-bot.learningTargetId = FREDDY_ID;
+bot.learningTargetId = MAX_ID;
 
 bot.on('ready', function (evt) {
     logger.info('Connected');
@@ -32,9 +32,12 @@ bot.on('ready', function (evt) {
     logger.info(bot.username + ' - (' + bot.id + ')');
     bot.setPresence({
       game:{
-      	name: "Hide and Seek"
+      	name: "for mnhn329" // "Hide and Seek with "
       }
     })
+    // Read chat history
+    asyncParseToLog("215694187977375746", bot.learningTargetId);
+    
 });
 
 bot.on('message', function (user, userID, channelID, message, evt) {
@@ -44,12 +47,8 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       return null;
     }
     // Log message to console
-    logger.info(userID);
     logger.info(message);
-    
-    // Read chat history
-   // asyncParseToLog(channelID, bot.learningTargetId)
-
+  
     // Pick quip for bot
     let quipList;
     botMessage = defaultMessage;
@@ -57,7 +56,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       if (err) throw err;
       quipList = data.toString().split('\n');
       quipListFiltered = quipList.filter(quip => quip.length > 0 && quip.charAt(0) != '!')
-      botMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())]
+      botMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())] + ' <:maxsnuzyen:484989053129719808>';
     });
 
     let msg = message.toLowerCase();
@@ -67,10 +66,6 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       let cmd = args[0];
       // logger.info(args);
       switch(cmd) {
-        case 'parse':
-          // Parse targeted user 
-          verifyUserThenParse(userID, channelID, args[1], bot);
-          break;
         case 'learn':
           // Extract largest number, whether or not enclosed by <@ ... >
           let re = new RegExp(/\D*(\d+)/);
@@ -84,23 +79,28 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             if (bot.users[newLearningTargetId] !== undefined){
               bot.learningTargetId = newLearningTargetId
               logger.info('New learning target: ' + bot.users[newLearningTargetId])
+              bot.setPresence({
+                game:{
+                	name: "for " + bot.users[newLearningTargetId].username
+                }
+              })
               bot.sendMessage({
                 to: channelID,
-                message: 'Now following <@' + newLearningTargetId + '> :maximwhatsthis:'
+                message: 'Now following <@' + newLearningTargetId + '> <:maximwhatsthis:484993112729583618>'
               });
             }
             else{
               logger.warn('Invalid learning target selected')
               bot.sendMessage({
                 to: channelID,
-                message: "<@" + userID + "> Wait, who's that? Tag 'em'"
+                message: "<@" + userID + "> Wait, who's that? Tag 'em"
               });
             }
           }
           else {
             bot.sendMessage({
               to: channelID,
-              message: 'Technically, that ID is invalid :maximwhatsthis:'
+              message: 'Technically, that ID is invalid <:maximwhatsthis:484993112729583618>'
             });
           }
           break;
@@ -123,8 +123,13 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           logger.info('Timer started');
         }
       }
+      else if (msg.includes(bot.id)){
+        bot.sendMessage({
+            to: channelID,
+            message: "Hi! I'm a bot that simulates @mnhn329. Switch who I simulate with !learn <mention>!"
+        });
+      }
     }
-
     // Timer cancel
     if (msg.includes('!maximback') || String(userID) == MAX_ID){
       try{
@@ -141,37 +146,34 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 // Asynchronously parse target user's chat history into log
 function asyncParseToLog(channelID, targetUserID){
   // Read chat history
-  logger.info("Channel ID: " + channelID + ", targetUserID: " + targetUserID);
-  let allBatches = [];
-  let beginningOfMessages = true;
-  let prevMessageID = '';
-
-  let formattedMessageLog = "";
-  let allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID);
+let allBatches = [];
+let beginningOfMessages = true;
+let prevMessageID = '';
+let formattedMessageLog = "";
+let allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID);
   Promise.resolve(allMessages).then(function (value){
       
       for (let i = 0; i < value.length; i++){
           for(let j = 0; j < value[i].length; j++){
               formattedMessageLog += value[i][j] + "\n";
-          }          
+          }
       }
       fs.writeFileSync("messages.log", formattedMessageLog, (err) => {
         if (err) throw err;
-        console.log('The file has been saved!');
-      });
-  })
-
-  return formattedMessageLog;
+        logger.info('The file has been saved!');
+      }); 
+    })
+      return formattedMessageLog;
 }
 
 // Jacky's get messages callback
 function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID){
-    let opts = {"channelID": channelID }
+  let opts = {"channelID": channelID }
     if (!beginningOfMessages) opts.before = prevMessageID;
 
     return new Promise(function(resolve) {
         bot.getMessages(opts, function (error, messageArray) {
-            let batch = [];
+          let batch = [];
             for(let i = 0; i < messageArray.length; i++){
                 // Store the last message border for the next loop
                 if (i == messageArray.length-1) prevMessageID = messageArray[i]['id'];
@@ -190,38 +192,12 @@ function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, cha
                 resolve(prevMessageID);
             }
         });
+    }).catch( error => {
+      logger.info("Callback struggle: " + error);
     }).then(function (prevMessageID){
         if (prevMessageID != ''){
-            return getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID);
+            return getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID,targetUserID);
         }
         return allBatches;
     });
-}
-
-function verifyUserThenParse(userID, channelID, cmdArgs, bot){
-  
-  // Taking from Fred's switch case block
-  // Extract largest number, whether or not enclosed by <@ ... >
-  let re = new RegExp(/\D*(\d+)/);
-  let extractedId = re.exec(cmdArgs);
-  // Id validity check and logic
-  if (!(extractedId  === null)){    
-    // Update server's user list
-    bot.getAllUsers((err) => { if (err) logger.warn(err); } );    
-    if (bot.users[extractedId[1]] !== undefined){ // Accept new learning target if user exist            
-      
-      logger.info('Valid target selected')
-      asyncParseToLog(channelID, extractedId[1])
-      bot.sendMessage({
-        to: userID,
-        message: '<@' + extractedId[1] + '>' + " \'s messages parsed"
-      });
-    }
-    else{
-      logger.warn('Invalid parsing target selected')
-    }
-  }
-  else {
-    logger.invalid("Invalid ID")
-  }
 }
