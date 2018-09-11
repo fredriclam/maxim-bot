@@ -52,11 +52,16 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     // Pick quip for bot
     let quipList;
     botMessage = defaultMessage;
-    fs.readFile( __dirname + '/messages.log', function (err, data) {
+    fs.readFile( __dirname + '/maxim-padding.txt', (err, data) => {
       if (err) throw err;
       quipList = data.toString().split('\n');
-      quipListFiltered = quipList.filter(quip => quip.length > 0 && quip.charAt(0) != '!')
-      botMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())] + ' <:maxsnuzyen:484989053129719808>';
+
+      fs.readFile( __dirname + '/messages.log', function (err, data) {
+        if (err) throw err;
+        quipList = quipList.concat(data.toString().split('\n'));
+        quipListFiltered = quipList.filter(quip => quip.length > 0 && quip.charAt(0) != '!')
+        botMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())] + ' <:maxsnuzyen:484989053129719808>';
+      });
     });
 
     let msg = message.toLowerCase();
