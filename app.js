@@ -7,7 +7,8 @@ var fs = require('fs');
 const MAX_ID = "163475101046538240";
 const FREDDY_ID = "265678340692770816";
 // Default quip
-defaultMessage = 'Maxim afk :maximwhatsthis:';
+let defaultMessage = 'Maxim afk :maximwhatsthis:';
+let maxsnuzyenEmoji = '<:maxsnuzyen:489283891807518720>';
 
 // Configure logger settings
 logger.remove(logger.transports.Console);
@@ -60,7 +61,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         if (err) throw err;
         quipList = quipList.concat(data.toString().split('\n'));
         quipListFiltered = quipList.filter(quip => quip.length > 0 && quip.charAt(0) != '!')
-        botMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())] + ' <:maxsnuzyen:484989053129719808>';
+        botMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())] + ' ' + maxsnuzyenEmoji;
       });
     });
 
