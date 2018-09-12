@@ -78,7 +78,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           extractedId = re.exec(args[1]);
           // Id validity check and logic
           if (!(extractedId  === null)){
-            newLearningTargetId = extractedId[1];
+            let newLearningTargetId = extractedId[1];
             // Update server's user list
             bot.getAllUsers((err) => { if (err) logger.warn(err); } );
             // Accept new learning target if user exists
@@ -90,6 +90,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 	name: "for " + bot.users[newLearningTargetId].username
                 }
               })
+
+              asyncParseToLog("215694187977375746", newLearningTargetId);
+
               bot.sendMessage({
                 to: channelID,
                 message: 'Now following <@' + newLearningTargetId + '> <:maximwhatsthis:484993112729583618>'
