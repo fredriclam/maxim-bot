@@ -3,6 +3,7 @@ var logger = require('winston');
 var auth = require('./auth.json');
 var fs = require('fs');
 
+const weeabooChannelId = "215694187977375746"
 // Maxim data
 const MAX_ID = "163475101046538240";
 const FREDDY_ID = "265678340692770816";
@@ -37,7 +38,7 @@ bot.on('ready', function (evt) {
       }
     })
     // Read chat history
-    asyncParseToLog("215694187977375746", bot.learningTargetId);
+    asyncParseToLog(weeabooChannelId, bot.learningTargetId, false);
     
 });
 
@@ -91,11 +92,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 }
               })
 
-              asyncParseToLog("215694187977375746", newLearningTargetId);
-
+              asyncParseToLog(channelID, newLearningTargetId, true);
               bot.sendMessage({
                 to: channelID,
-                message: 'Now following <@' + newLearningTargetId + '> <:maximwhatsthis:484993112729583618>'
+                message: 'Now following <@' + newLearningTargetId + '>... <:maximwhatsthis:484993112729583618>'
               });
             }
             else{
@@ -152,8 +152,20 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     }
 });
 
+// Replace log with new user
+// TODO: Add database or store messages.log as $USER_ID.log
+function readFromLog(botMessage, channelID, newLearningTargetId){
+	fs.readFile( __dirname + '/messages.log', function (err, data) {
+	  if (err) throw err;
+		let quipList = [];
+	  quipList = quipList.concat(data.toString().split('\n'));
+	  let quipListFiltered = quipList.filter(quip => quip.length > 0 && quip.charAt(0) != '!')
+	  botMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())] + ' ' + maxsnuzyenEmoji;
+	});
+}
 // Asynchronously parse target user's chat history into log
-function asyncParseToLog(channelID, targetUserID){
+// replaceBotMessages: set true if botMessages should be read from messageLog
+function asyncParseToLog(channelID, targetUserID, replaceBotMessages){
   // Read chat history
 let allBatches = [];
 let beginningOfMessages = true;
@@ -170,6 +182,9 @@ let allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessa
       fs.writeFileSync("messages.log", formattedMessageLog, (err) => {
         if (err) throw err;
         logger.info('The file has been saved!');
+				if (replaceBotMessages){
+					readFromLog(botMessage, channelID, newLearningTargetId);
+				}
       }); 
     })
       return formattedMessageLog;
@@ -210,3 +225,4 @@ function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, cha
         return allBatches;
     });
 }
+
