@@ -2,6 +2,7 @@
 
 <img src="https://lh4.googleusercontent.com/Q-969M6qGMUpQWH5TqUXVY0wNvmFOiNX_ZrDbfTMg72ERJXq9RVwnljjW9kmhFkWahYwKA4DrAuvm1YS479Z=w3246-h1564" width="150px" height="150px">
 
+
 Picture this. The energy of the party, Maxim, has gone missing. Fear not! Maxim-bot is here to substitute the gaping hole in your heart.
 As your best friend oversleeps on his futon, Maxim-bot uses state of the art technology to replicate unforgettable replies that Maxim would make if he were available.
 
@@ -13,3 +14,8 @@ As your best friend oversleeps on his futon, Maxim-bot uses state of the art tec
 2. `cd maxim-bot`
 3. `npm install github:woor/discord.io#gateway_v6 winston --save`
 4. `add auth.json`
+
+
+## TODO: Set up aws user
+
+Next is to set up an aws user so that redeploy can be done by anybody on Elastic Beanstalk

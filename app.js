@@ -7,6 +7,8 @@ const weeabooChannelId = "215694187977375746"
 // Maxim data
 const MAX_ID = "163475101046538240";
 const FREDDY_ID = "265678340692770816";
+
+var TARGET_ID = MAX_ID;
 // Default quip
 let defaultMessage = 'Maxim afk :maximwhatsthis:';
 let maxsnuzyenEmoji = '<:maxsnuzyen:489283891807518720>';
@@ -26,7 +28,7 @@ var bot = new Discord.Client({
 // Flag to check for timer
 bot.isTimerOn = false;
 // Default learning target
-bot.learningTargetId = MAX_ID;
+bot.learningTargetId = TARGET_ID;
 
 bot.on('ready', function (evt) {
     logger.info('Connected');
@@ -97,6 +99,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 to: channelID,
                 message: 'Now following <@' + newLearningTargetId + '>... <:maximwhatsthis:484993112729583618>'
               });
+							TARGET_ID = newLearningTargetId
             }
             else{
               logger.warn('Invalid learning target selected')
@@ -117,7 +120,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     }
     else {
       // Capture @mnhn329 messages
-      if (msg.includes(MAX_ID) || msg.includes('@mnhn329')) {
+      if (msg.includes(TARGET_ID) || msg.includes('@mnhn329')) {
         if (!bot.isTimerOn){
           // Start timer and payload if not on
           bot.isTimerOn = true;
@@ -140,7 +143,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       }
     }
     // Timer cancel
-    if (msg.includes('!maximback') || String(userID) == MAX_ID){
+    if (msg.includes('!maximback') || String(userID) == TARGET_ID){
       try{
         clearTimeout(timer);
         logger.info('Timer stopped');
