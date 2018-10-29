@@ -12,7 +12,7 @@ var TARGET_ID = MAX_ID;
 // Default quip
 let defaultMessage = 'Maxim afk :maximwhatsthis:';
 let maxsnuzyenEmoji = '<:maxsnuzyen:489283891807518720>';
-
+let coolstorybobEmoji = '<:coolstoryfred:503693902730100736>'
 // Configure logger settings
 logger.remove(logger.transports.Console);
 logger.add(new logger.transports.Console, {
@@ -25,6 +25,7 @@ var bot = new Discord.Client({
    autorun: true
 });
 
+var botMessage = defaultMessage;
 // Flag to check for timer
 bot.isTimerOn = false;
 // Default learning target
@@ -40,8 +41,21 @@ bot.on('ready', function (evt) {
       }
     })
     // Read chat history
-    asyncParseToLog(weeabooChannelId, bot.learningTargetId, false);
+    asyncParseToLog(weeabooChannelId, bot.learningTargetId, true);
     
+    // Pick quip for bot
+    let quipList;
+    fs.readFile( __dirname + '/maxim-padding.txt', (err, data) => {
+      if (err) throw err;
+      quipList = data.toString().split('\n');
+
+      fs.readFile( __dirname + '/messages.log', function (err, data) {
+        if (err) throw err;
+        quipList = quipList.concat(data.toString().split('\n'));
+        quipListFiltered = quipList.filter(quip => quip.length > 0 && quip.charAt(0) != '!')
+        botMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())] + ' ' + botEmoji(bot.learningTargetId);
+      });
+    });
 });
 
 bot.on('message', function (user, userID, channelID, message, evt) {
@@ -53,20 +67,6 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     // Log message to console
     logger.info(message);
   
-    // Pick quip for bot
-    let quipList;
-    botMessage = defaultMessage;
-    fs.readFile( __dirname + '/maxim-padding.txt', (err, data) => {
-      if (err) throw err;
-      quipList = data.toString().split('\n');
-
-      fs.readFile( __dirname + '/messages.log', function (err, data) {
-        if (err) throw err;
-        quipList = quipList.concat(data.toString().split('\n'));
-        quipListFiltered = quipList.filter(quip => quip.length > 0 && quip.charAt(0) != '!')
-        botMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())] + ' ' + maxsnuzyenEmoji;
-      });
-    });
 
     let msg = message.toLowerCase();
     // Capture ! commands
@@ -94,12 +94,13 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 }
               })
 
+							TARGET_ID = newLearningTargetId;
               asyncParseToLog(channelID, newLearningTargetId, true);
+
               bot.sendMessage({
                 to: channelID,
                 message: 'Now following <@' + newLearningTargetId + '>... <:maximwhatsthis:484993112729583618>'
               });
-							TARGET_ID = newLearningTargetId
             }
             else{
               logger.warn('Invalid learning target selected')
@@ -130,6 +131,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                   to: channelID,
                   message: botMessage
               });
+							logger.info(botMessage)
               bot.isTimerOn = false;
           }, 5 * 1000);
           logger.info('Timer started');
@@ -157,18 +159,15 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
 // Replace log with new user
 // TODO: Add database or store messages.log as $USER_ID.log
-function readFromLog(botMessage, channelID, newLearningTargetId){
-	fs.readFile( __dirname + '/messages.log', function (err, data) {
-	  if (err) throw err;
-		let quipList = [];
-	  quipList = quipList.concat(data.toString().split('\n'));
+function replaceBotMessages(channelID, newLearningTargetId, data){
+		
+	  let quipList = data.toString().split('\n');
 	  let quipListFiltered = quipList.filter(quip => quip.length > 0 && quip.charAt(0) != '!')
-	  botMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())] + ' ' + maxsnuzyenEmoji;
-	});
+	  botMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())] + ' ' + botEmoji(newLearningTargetId);
 }
 // Asynchronously parse target user's chat history into log
 // replaceBotMessages: set true if botMessages should be read from messageLog
-function asyncParseToLog(channelID, targetUserID, replaceBotMessages){
+function asyncParseToLog(channelID, targetUserID, wipeBotCache){
   // Read chat history
 let allBatches = [];
 let beginningOfMessages = true;
@@ -182,12 +181,14 @@ let allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessa
               formattedMessageLog += value[i][j] + "\n";
           }
       }
+		
+			if (wipeBotCache){
+					replaceBotMessages(channelID, targetUserID,formattedMessageLog);
+			}
+
       fs.writeFileSync("messages.log", formattedMessageLog, (err) => {
         if (err) throw err;
         logger.info('The file has been saved!');
-				if (replaceBotMessages){
-					readFromLog(botMessage, channelID, newLearningTargetId);
-				}
       }); 
     })
       return formattedMessageLog;
@@ -229,3 +230,6 @@ function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, cha
     });
 }
 
+function botEmoji(id){
+	return (id == FREDDY_ID)? coolstorybobEmoji : maxsnuzyenEmoji;
+}
