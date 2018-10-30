@@ -12,7 +12,6 @@ const FREDDY_ID = "265678340692770816";
 let defaultMessage = 'Maxim afk';
 let maxsnuzyenEmoji = '<:maxsnuzyen:489283891807518720>';
 let coolstorybobEmoji = '<:coolstoryfred:503693902730100736>'
-
 // Message log file name
 messageLogName = 'messages.log'
 // Define logger file names
@@ -20,12 +19,11 @@ loggerFileName = './logger.log'
 // Users log file name
 userLogName = './users.log'
 
-// Configure logger
-// Winston printf
+// Use winston.format.printf for configuring logger format
 const loggingFormat = printf(info => {
   return `"${info.level}" ${info.timestamp} >>> ${info.message}`;
 });
-
+// Create logger
 const logger = createLogger({
   format: combine(
     timestamp({
@@ -54,9 +52,10 @@ var bot = new Discord.Client({
    token: auth.token,
    autorun: true,
 });
+
 // Append custom attributes
-// String proxy for invoking bot -- TODO
-bot.targetPlainString = () => '@mnhn329';
+// String proxy for invoking bot -- function should be bound to bot
+bot.targetPlainString = () => bot.users[bot.learningTargetId].username;
 // Message that bot will fire next
 bot.nextMessage = defaultMessage;
 // Flag to check for timer
@@ -88,6 +87,7 @@ bot.on('ready', function (evt) {
 });
 
 bot.on('message', function (user, userID, channelID, message, evt) {
+    logger.debug(bot.targetPlainString());
     // Ignore self messages
     if (userID == bot.id){
       logger.debug('Ignoring own message.')
@@ -103,9 +103,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     let msg = message.toLowerCase();
     
     // Capture @<user> mentions and vanilla @<user> messages
-    if (msg.includes(bot.learningTargetId) || msg.includes(bot.targetPlainString())) {
+    if (msg.includes(bot.learningTargetId) || msg.includes('@' + bot.targetPlainString())) {
       pickQuip(bot);
-      delayedMessage(bot);
+      delayedMessage(bot, channelID);
       return null;
     }
     // Capture bot mentions
@@ -121,7 +121,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       let args = msg.substring(1).split(' ');
       let cmd = args[0];
       logger.debug("Inputs parsed: " + args)
-      cmd_list = ['log', 'env', 'help', 'set', 'msgs', 'who', 'goodbot', 'badbot', 'maximback'];
+      cmd_list = ['learn', 'log', 'env', 'help', 'set', 'msgs', 'who', 'goodbot', 'badbot', 'maximback'];
       switch(cmd) {
         case 'learn': // Switch target
           learnTarget(bot, args[1], channelID);
@@ -250,7 +250,7 @@ function interruptTimer(bot){
  * @param {Discord.Client} bot 
  * @param {String} channelID
  */
-function delayedMessage(bot){
+function delayedMessage(bot, channelID){
   if (!bot.isTimerOn){
     bot.isTimerOn = true;
     // Set new timer
