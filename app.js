@@ -35,7 +35,7 @@ const logger = createLogger({
   colorize: true,
   transports: [
     new transports.Console({
-      level: 'debug'
+      level: 'info'
     }),
     new transports.File({
       filename: loggerFileName,
@@ -92,16 +92,33 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       logger.debug('Ignoring own message.')
       return null;
     }
+    // Abort if target user messages
+    if(String(userID) == bot.learningTargetId)
+      interruptTimer(bot);
     
     // Log message intercepted from chat
-    logger.info("Message detected: " + message);
+    logger.debug("Message detected: " + message);
   
     let msg = message.toLowerCase();
     
+    // Capture @<user> mentions and vanilla @<user> messages
+    if (msg.includes(bot.learningTargetId) || msg.includes(bot.targetPlainString())) {
+      pickQuip(bot);
+      delayedMessage(bot);
+      return null;
+    }
+    // Capture bot mentions
+    if (msg.includes(bot.id)){
+      bot.sendMessage({
+          to: channelID,
+          message: "Hi! I'm a bot that simulates your MIA homies. Switch who I simulate with !learn <mention>, or !help for help."
+      });
+    }
+
     if (msg.substring(0, 1) == '!') { // Capture ! commands
       let args = msg.substring(1).split(' ');
       let cmd = args[0];
-      logger.info("Inputs parsed: " + args)
+      logger.debug("Inputs parsed: " + args)
       switch(cmd) {
         case 'learn': // Switch target
           learnTarget(bot, args[1], channelID);
@@ -115,6 +132,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           bot.sendMessage({
             to: channelID,
             message: "```JSON\nEnvironment:\n" +
+              `Default channel ID: ${weeabooChannelId}\n` +
               `Channel ID: ${channelID}\n` +
               `Bot ID: ${bot.id}\n` +
               `Followed: ${bot.learningTargetId} == ` +
@@ -128,38 +146,37 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           break;
         case 'set': // Set properties
           break;
+        case 'who': // Return who is on channel
+          bot.sendMessage({
+            to: channelID,
+            message: bot.users
+          })
         case 'goodbot': // Yay
           break;
         case 'badbot': // Aww
           break;
+        case 'maximback': 
+          interruptTimer(bot);
       }
-    }
-    else { // Capture @mnhn329 messages
-      if (msg.includes(bot.learningTargetId) || msg.includes(bot.targetPlainString)) {
-        pickQuip(bot);
-        delayedMessage(bot);
-      }
-      else if (msg.includes(bot.id)){
-        bot.sendMessage({
-            to: channelID,
-            message: "Hi! I'm a bot that simulates @mnhn329. Switch who I simulate with !learn <mention>!"
-        });
-      }
-    }
-
-    // Special conditions for canceling timer
-    if (msg.includes('!maximback') || String(userID) == bot.learningTargetId){
-      try{
-        clearTimeout(timer);
-        logger.info('Timer stopped.');
-      }
-      catch(error){
-        logger.info("Probably timer didn't exist; following timer stop error was caught: ");
-        logger.info(error)
-      }
-      bot.isTimerOn = false;
     }
 });
+
+/**
+ * Interrupts bot's timer for next message
+ * @param {Discord.Client} bot 
+ */
+function interruptTimer(bot){
+  if (bot.isTimerOn){
+    try{
+      clearTimeout(bot.timer);
+      logger.info('Timer stopped.');
+    }
+    catch(error){
+      logger.info("Probably timer didn't exist; following timer stop error was caught: " + error.message)
+    }
+    bot.isTimerOn = false;
+  }
+}
 
 /**
  * Sends bot.nextMessage after delay given by bot.secondsDelay to channelID
@@ -219,7 +236,7 @@ function learnTarget(bot, target, channelID) {
   // Extract largest number, whether or not enclosed by <@ ... >
   let re = new RegExp(/\D*(\d+)/);
   extractedId = re.exec(target);
-  logger.info(extractedId + target)
+  logger.debug("ExtractedID + target: "+ extractedId + target)
   let msg = {to: channelID}
   if (!(extractedId === null)){
     let newLearningTargetId = extractedId[1];
