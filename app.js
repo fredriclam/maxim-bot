@@ -1,5 +1,6 @@
 var Discord = require('discord.io');
-var logger = require('winston');
+var {createLogger, format, transports} = require('winston');
+var {combine, printf, timestamp} = format;
 var auth = require('./auth.json');
 var fs = require('fs');
 
@@ -14,17 +15,38 @@ let coolstorybobEmoji = '<:coolstoryfred:503693902730100736>'
 
 // Message log file name
 messageLogName = 'messages.log'
-
-// Configure logger
+// Define logger file names
 loggerFileName = './logger.log'
-logger.remove(logger.transports.Console);
-logger.add(new logger.transports.Console, {
-    colorize: true
+errFileName = './err.log'
+// Configure logger
+// Winston printf
+const loggingFormat = printf(info => {
+  return `"${info.level}" ${info.timestamp} >>> ${info.message}`;
 });
-logger.add(new logger.transports.File({
-  filename: loggerFileName
-}))
-logger.level = 'debug';
+
+
+const logger = createLogger({
+  format: combine(
+    timestamp({
+      format: 'MM/DD HH:mm:ss'
+    }),
+    loggingFormat
+  ),
+  colorize: true,
+  transports: [
+    new transports.Console({
+      level: 'debug'
+    }),
+    new transports.File({
+      filename: loggerFileName,
+      level: 'debug'
+    }),
+    new transports.File({
+      filename: errFileName,
+      level: 'error'
+    }),
+  ],
+})
 
 // Initialize Discord Bot
 var bot = new Discord.Client({
@@ -47,13 +69,13 @@ bot.secondsDelay = 5 * 1000;
 // Lines to output on dump
 bot.dumpLength = 5;
 // Max dump length
-bot.maxDumpLength = 20;
+bot.maxDumpLength = 10;
 // Next message bot will dump
 bot.nextMessage = defaultMessage;
 
 
 bot.on('ready', function (evt) {
-    logger.info('=== Logged in as: ' + bot.username + ' - (' + bot.id + ')');
+    logger.info(`*** Logged in as: ${bot.username} (id:${bot.id}) ***`);
     // Set presence shown on Discord
     bot.setPresence({
       game:{
@@ -151,9 +173,11 @@ function logDump(bot, channelID){
   fs.readFile(`${__dirname}/${loggerFileName}`, function(err, data){
     if (err) logger.error("Error caught reading logger file: " + err.message);
     // Sanitize input
-    logString = data.toString().replace("```","").split('\n').slice(-bot.dumpLength-1,-1).join('\n');
-    logString = "Debug log ():\n```[...]\n" + logString + "```";
-    // DUmp to chat
+    logString = '```JSON\n' + data.toString().replace("```","")
+                            .split('\n').slice(-bot.dumpLength-1,-1)
+                            .join('\n```\n```JSON\n') + '```';
+    logString = "Debug log (last " + bot.dumpLength + " lines):\n" + logString;
+    // Dump to chat
     bot.sendMessage({
       to: channelID,
       message: logString
@@ -217,7 +241,7 @@ function pickQuip(bot){
     // Read all quips from data
     bot.quipList = data.toString().split('\n');
     // Filter out useless elements and !commands
-    quipListFiltered = quipList.filter(quip => quip.length > 0 && quip.charAt(0) != '!')
+    quipListFiltered = bot.quipList.filter(quip => quip.length > 0 && quip.charAt(0) != '!')
     // Load bot's next message
     if (quipListFiltered && quipListFiltered.length != 0){
       bot.nextMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())] + ' ' + botEmoji(bot.learningTargetId);
