@@ -79,7 +79,7 @@ bot.on('ready', function (evt) {
     // Set presence shown on Discord
     bot.setPresence({
       game:{
-      	name: "for mnhn329" // "Hide and Seek with "
+        name: "for mnhn329" // "Hide and Seek with "
       }
     })
     // Read chat history
@@ -93,15 +93,12 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       logger.debug('Ignoring own message.')
       return null;
     }
-    // Abort if target user messages
+    // Abort timer if target user messages
     if(String(userID) == bot.learningTargetId)
       interruptTimer(bot);
-    
-    // Log message intercepted from chat
+
     logger.debug("Message detected: " + message);
-  
     let msg = message.toLowerCase();
-    
     // Capture @<user> mentions and vanilla @<user> messages
     if (msg.includes(bot.learningTargetId) || msg.includes('@' + bot.targetPlainString())) {
       pickQuip(bot);
@@ -160,7 +157,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           break;
         case 'who': // Return who is on channel
           fs.writeFile(`${userLogName}`, JSON.stringify(bot.users), (err, data) => {
-            if (err) 
+            if (err)
               logger.error("Error writing users file: " + err.message);
             bot.uploadFile({
                 to: channelID,
@@ -173,7 +170,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           break;
         case 'badbot': // Aww
           break;
-        case 'maximback': 
+        case 'maximback':
           interruptTimer(bot);
           break;
         default:
@@ -230,7 +227,7 @@ function parseFlags(inputStr){
 
 /**
  * Interrupts bot's timer for next message
- * @param {Discord.Client} bot 
+ * @param {Discord.Client} bot
  */
 function interruptTimer(bot){
   if (bot.isTimerOn){
@@ -247,7 +244,7 @@ function interruptTimer(bot){
 
 /**
  * Sends bot.nextMessage after delay given by bot.secondsDelay to channelID
- * @param {Discord.Client} bot 
+ * @param {Discord.Client} bot
  * @param {String} channelID
  */
 function delayedMessage(bot, channelID){
@@ -259,7 +256,7 @@ function delayedMessage(bot, channelID){
         bot.sendMessage({
             to: channelID,
             message: bot.nextMessage
-        });        
+        });
     }, bot.secondsDelay);
     logger.info('Timer started');
   }
@@ -267,14 +264,14 @@ function delayedMessage(bot, channelID){
 
 /**
  * Dumps log to Discord chat, using (optional) flags to filter results.
- * 
+ *
  * Warning: dependent on logger file formatting to filter log entries
  * by flag.
- * 
+ *
  * Uses logger, and fires message to channelID.
  * Uses fs to load logger file asynchronously (Winston logger broken)
  * Uses global __dirname, messageLogName.
- * @param {Discord.Client} bot 
+ * @param {Discord.Client} bot
  * @param {String} channelID
  * @param {Object} flags: the flags mapping flags (keys) to vals (or true)
  */
@@ -338,14 +335,14 @@ function logDump(bot, channelID, flags){
   })
 }
 
-/** 
+/**
  * Switches bot to a new target.
  * Sets bot.learningTargetId and presence of bot using bot.setPresence.
  * Uses logger and fires messages to channelID
  * @param {Discord.Client} bot
  * @param {String} target: raw string (second argument of command sent to bot).
  * @param {String} channelID
- */ 
+ */
 function learnTarget(bot, target, channelID) {
   // Extract largest number, whether or not enclosed by <@ ... >
   let re = new RegExp(/\D*(\d+)/);
@@ -382,7 +379,7 @@ function learnTarget(bot, target, channelID) {
   bot.sendMessage(msg)
 }
 
-/** 
+/**
  * Pick a quip and load it into bot.nextMessage
  * Uses fs to load file message log file asynchronously.
  * Uses global __dirname, messageLogName.
@@ -398,7 +395,7 @@ function pickQuip(bot){
     // Load bot's next message
     if (quipListFiltered && quipListFiltered.length != 0){
       bot.nextMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())] + ' ' + botEmoji(bot.learningTargetId);
-    } 
+    }
   });
 }
 
@@ -411,18 +408,17 @@ let prevMessageID = '';
 let formattedMessageLog = "";
 let allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, channelID, targetUserID);
   Promise.resolve(allMessages).then(function (value){
-      
       for (let i = 0; i < value.length; i++){
           for(let j = 0; j < value[i].length; j++){
               formattedMessageLog += value[i][j] + "\n";
           }
       }
-		
+
 
       fs.writeFile(`${messageLogName}`, formattedMessageLog, (err) => {
         if (err) throw err;
         logger.info('The file has been saved!');
-      }); 
+      });
     })
       return formattedMessageLog;
 }
@@ -464,5 +460,5 @@ function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, cha
 }
 
 function botEmoji(id){
-	return (id == FREDDY_ID)? coolstorybobEmoji : maxsnuzyenEmoji;
+  return (id == FREDDY_ID)? coolstorybobEmoji : maxsnuzyenEmoji;
 }
