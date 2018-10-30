@@ -53,26 +53,36 @@ var bot = new Discord.Client({
    autorun: true,
 });
 
-// Append custom attributes
-// String proxy for invoking bot -- function should be bound to bot
-bot.targetPlainString = () => bot.users[bot.learningTargetId].username;
-// Message that bot will fire next
-bot.nextMessage = defaultMessage;
-// Flag to check for timer
-bot.isTimerOn = false;
-// Default learning target
-bot.learningTargetId = MAX_ID;
-// Default bank of quips is empty
-bot.quipList = [];
-// Timer delay (seconds)
-bot.secondsDelay = 5 * 1000;
-// Lines to output on dump
-bot.dumpLength = 5;
-// Max dump length
-bot.maxDumpLength = 10;
-// Next message bot will dump
-bot.nextMessage = defaultMessage;
+// Bot settable propreties
+settableProperties = {
+  // String proxy for invoking bot -- function should be bound to bot
+  targetPlainString: () => bot.users[bot.learningTargetId].username,
+  // Message that bot will fire next
+  nextMessage: defaultMessage,
+  // Flag to check for timer
+  isTimerOn: false,
+  // Default learning target
+  learningTargetId: MAX_ID,
+  // Default bank of quips is empty
+  quipList: [],
+  // Timer delay (seconds)
+  secondsDelay: 5 * 1000,
+  // Lines to output on dump
+  dumpLength: 5,
+  // Max dump length
+  maxDumpLength: 10,
+  // Next message bot will dump
+  nextMessage: defaultMessage
+};
 
+// Append custom attributes to bot
+for (propKey in settableProperties){
+  bot[propKey] = settableProperties[propKey];
+}
+
+bot.on('disconnect', function(errMsg, code) {
+  logger.error(`Disconnected with error message ${errMsg} and code ${code}`);
+});
 
 bot.on('ready', function (evt) {
     logger.info(`*** Logged in as: ${bot.username} (id:${bot.id}) ***`);
@@ -115,17 +125,24 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
     // Capture ! commands
     if (msg.substring(0, 1) == '!') {
-      let args = msg.substring(1).split(' ');
-      let cmd = args[0];
-      logger.debug("Inputs parsed: " + args)
+      // List of commands (manually updated)
       cmd_list = ['learn', 'log', 'env', 'help', 'set', 'msgs', 'who', 'goodbot', 'badbot', 'maximback'];
+      // Split message after '!' token by spaces
+      let args = msg.substring(1).split(' ');
+      // Parse main command !cmd
+      let cmd = args[0];
+      // Parse optional flags
+      flags = parseFlags(args.slice(1).join(" "));
+      // Log total input
+      logger.debug(`Inputs parsed: ${args}, with option flags (--x): ${JSON.stringify(flags)}`);
+
       switch(cmd) {
         case 'learn': // Switch target
           learnTarget(bot, args[1], channelID);
           break;
         case 'log': // Check logs
           // Parse additional args
-          logDump(bot, channelID, parseFlags(args.slice(1).join(" ")));
+          logDump(bot, channelID, flags);
           break;
         case 'env': // Return environment
           bot.sendMessage({
@@ -147,6 +164,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           })
           break;
         case 'set': // Set properties
+          validateAndSet(bot, flags);
           break;
         case 'msgs': // Upload messages list
           bot.uploadFile({
@@ -181,6 +199,25 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       }
     }
 });
+
+/**
+ * Validates and sets bot properties according to flags if property is settable.
+ * No input sanitization implemented yet, so use at your own risk.
+ * Refers to settableProperties's properties
+ * @param {Discord.Client} bot
+ * @param {Object} flags : the flags as keys to value (or true for single flags)
+ */
+function validateAndSet(bot, flags){
+  logger.warn("Set method called. Hope you know what you're doing.");
+  for (propKey in settableProperties){
+    if (flags[propKey.toLowerCase()]){
+      // Restrictions for each property
+      // Set property
+      bot[propKey] = flags[propKey.toLowerCase()];
+      logger.info(`${propKey} changed to ${bot[propKey]}`);
+    }
+  }
+}
 
 /**
  * Parses CLI-style flags into an object
@@ -221,7 +258,6 @@ function parseFlags(inputStr){
   catch(error){
     logger.warn("Flag parsing failed; error:" + error.message)
   }
-  logger.debug(JSON.stringify(flags));
   return flags;
 }
 
@@ -331,7 +367,14 @@ function logDump(bot, channelID, flags){
     bot.sendMessage({
       to: channelID,
       message: logString
-    }, function(err) {if (err) logger.error("Error dumping logs: " + err.message)})
+    }, function(err) {
+      if (err){
+        logger.error("Error dumping logs: " + err.message);
+        bot.sendMessage({
+          to: channelID,
+          message: "Failed to dump logs. Logs may be too big."
+        })
+      }})
   })
 }
 
