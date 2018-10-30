@@ -42,7 +42,7 @@ bot.on('ready', function (evt) {
       }
     })
     // Read chat history
-    asyncParseToLog(weeabooChannelId, bot.learningTargetId;
+    asyncParseToLog(weeabooChannelId, bot.learningTargetId);
     
 });
 
