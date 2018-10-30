@@ -17,13 +17,11 @@ let coolstorybobEmoji = '<:coolstoryfred:503693902730100736>'
 messageLogName = 'messages.log'
 // Define logger file names
 loggerFileName = './logger.log'
-errFileName = './err.log'
 // Configure logger
 // Winston printf
 const loggingFormat = printf(info => {
   return `"${info.level}" ${info.timestamp} >>> ${info.message}`;
 });
-
 
 const logger = createLogger({
   format: combine(
@@ -44,11 +42,7 @@ const logger = createLogger({
     new transports.File({
       filename: loggerFileName,
       level: 'debug'
-    }),
-    new transports.File({
-      filename: errFileName,
-      level: 'error'
-    }),
+    })
   ],
 })
 
@@ -246,9 +240,12 @@ function delayedMessage(bot){
   }
 }
 
-
 /**
- * Dumps log to Discord chat.
+ * Dumps log to Discord chat, using (optional) flags to filter results.
+ * 
+ * Warning: dependent on logger file formatting to filter log entries
+ * by flag.
+ * 
  * Uses logger, and fires message to channelID.
  * Uses fs to load logger file asynchronously (Winston logger broken)
  * Uses global __dirname, messageLogName.
