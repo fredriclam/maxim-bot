@@ -4,3 +4,4 @@ auth.json
 err.log
 logger.log
 messages.log
+users.log

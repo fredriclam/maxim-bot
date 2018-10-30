@@ -17,6 +17,9 @@ let coolstorybobEmoji = '<:coolstoryfred:503693902730100736>'
 messageLogName = 'messages.log'
 // Define logger file names
 loggerFileName = './logger.log'
+// Users log file name
+userLogName = './users.log'
+
 // Configure logger
 // Winston printf
 const loggingFormat = printf(info => {
@@ -118,14 +121,14 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       let args = msg.substring(1).split(' ');
       let cmd = args[0];
       logger.debug("Inputs parsed: " + args)
+      cmd_list = ['log', 'env', 'help', 'set', 'msgs', 'who', 'goodbot', 'badbot', 'maximback'];
       switch(cmd) {
         case 'learn': // Switch target
           learnTarget(bot, args[1], channelID);
           break;
         case 'log': // Check logs
           // Parse additional args
-          flags = parseFlags(args.slice(1).join(" "))
-          logDump(bot, channelID, flags);
+          logDump(bot, channelID, parseFlags(args.slice(1).join(" ")));
           break;
         case 'env': // Return environment
           bot.sendMessage({
@@ -140,22 +143,44 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           })
           break;
         case 'help': // Get command list
-          break;
-        case 'quips': // Quips list
+          formattedList = cmd_list.map(s => '`!' + s + '` ').join(" ");
+          bot.sendMessage({
+            to: channelID,
+            message: `Here's the list of commands, although I'd rather sleep ${maxsnuzyenEmoji}: \n${formattedList}`
+          })
           break;
         case 'set': // Set properties
           break;
-        case 'who': // Return who is on channel
-          bot.sendMessage({
+        case 'msgs': // Upload messages list
+          bot.uploadFile({
             to: channelID,
-            message: JSON.stringify(bot.users)
+            file: messageLogName,
+            message: "Message list uploaded."
           })
+          break;
+        case 'who': // Return who is on channel
+          fs.writeFile(`${userLogName}`, JSON.stringify(bot.users), (err, data) => {
+            if (err) 
+              logger.error("Error writing users file: " + err.message);
+            bot.uploadFile({
+                to: channelID,
+                file: userLogName,
+                message: "Users file uploaded."
+            })
+          })
+          break;
         case 'goodbot': // Yay
           break;
         case 'badbot': // Aww
           break;
         case 'maximback': 
           interruptTimer(bot);
+          break;
+        default:
+          bot.sendMessage({
+            to: channelID,
+            message: `Wait what ${maxsnuzyenEmoji}`
+          })
       }
     }
 });
@@ -254,6 +279,14 @@ function delayedMessage(bot){
  * @param {Object} flags: the flags mapping flags (keys) to vals (or true)
  */
 function logDump(bot, channelID, flags){
+  // File request
+  if(flags["all"]){
+    bot.uploadFile({
+      to: channelID,
+      file: loggerFileName,
+      message: "Logger logs uploaded."
+    })
+  }
   // Read log and dump
   fs.readFile(`${__dirname}/${loggerFileName}`, function(err, data){
     if (err) logger.error("Error caught reading logger file: " + err.message);
