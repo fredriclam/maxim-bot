@@ -1,4 +1,5 @@
 node_modules/
 auth.json
-messages.log
 *.json
+messages.log
+logger.log
