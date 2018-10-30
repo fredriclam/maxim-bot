@@ -4,12 +4,12 @@ var {combine, printf, timestamp} = format;
 var auth = require('./auth.json');
 var fs = require('fs');
 
+// Constant IDs
 const weeabooChannelId = "215694187977375746"
-// Maxim data
 const MAX_ID = "163475101046538240";
 const FREDDY_ID = "265678340692770816";
 // Default quip
-let defaultMessage = 'Maxim afk :maximwhatsthis:';
+let defaultMessage = 'Maxim afk';
 let maxsnuzyenEmoji = '<:maxsnuzyen:489283891807518720>';
 let coolstorybobEmoji = '<:coolstoryfred:503693902730100736>'
 
@@ -103,12 +103,34 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       let cmd = args[0];
       logger.info("Inputs parsed: " + args)
       switch(cmd) {
-        case 'learn':
+        case 'learn': // Switch target
           learnTarget(bot, args[1], channelID);
           break;
-        case 'dump':
-          console.log(bot.dumpLength)
+        case 'dump': // Dump log
           logDump(bot, channelID);
+          break;
+        case 'db': // Debug (critical information only)
+          break;
+        case 'env': // Return environment
+          bot.sendMessage({
+            to: channelID,
+            message: "```JSON\nEnvironment:\n" +
+              `Channel ID: ${channelID}\n` +
+              `Bot ID: ${bot.id}\n` +
+              `Followed: ${bot.learningTargetId} == ` +
+              `"${bot.users[bot.learningTargetId].username}"\n` +
+              "```"
+          })
+          break;
+        case 'help': // Get command list
+          break;
+        case 'quips': // Quips list
+          break;
+        case 'set': // Set properties
+          break;
+        case 'goodbot': // Yay
+          break;
+        case 'badbot': // Aww
           break;
       }
     }
