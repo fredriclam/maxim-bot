@@ -35,7 +35,11 @@ const logger = createLogger({
   colorize: true,
   transports: [
     new transports.Console({
-      level: 'info'
+      level: 'debug'
+    }),
+    new transports.File({
+      filename: loggerFileName,
+      level: 'debug'
     }),
     new transports.File({
       filename: loggerFileName,
@@ -115,7 +119,8 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       });
     }
 
-    if (msg.substring(0, 1) == '!') { // Capture ! commands
+    // Capture ! commands
+    if (msg.substring(0, 1) == '!') {
       let args = msg.substring(1).split(' ');
       let cmd = args[0];
       logger.debug("Inputs parsed: " + args)
@@ -123,10 +128,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         case 'learn': // Switch target
           learnTarget(bot, args[1], channelID);
           break;
-        case 'dump': // Dump log
-          logDump(bot, channelID);
-          break;
-        case 'db': // Debug (critical information only)
+        case 'log': // Check logs
+          // Parse additional args
+          flags = parseFlags(args.slice(1).join(" "))
+          logDump(bot, channelID, flags);
           break;
         case 'env': // Return environment
           bot.sendMessage({
@@ -149,7 +154,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         case 'who': // Return who is on channel
           bot.sendMessage({
             to: channelID,
-            message: bot.users
+            message: JSON.stringify(bot.users)
           })
         case 'goodbot': // Yay
           break;
@@ -160,6 +165,49 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       }
     }
 });
+
+/**
+ * Parses CLI-style flags into an object
+ * Example: --a b --c --d 3 --e
+ * would return {"a":"b","d":"3","c":true,"e":true}
+ * @param {String} inputStr
+ * @returns {Object} flags: the flags as keys to value (or true for single flags)
+ */
+function parseFlags(inputStr){
+  // Object of flags: values
+  let flags = {};
+  let matches;
+  try{
+    // Define regex to capture --flag val pairs
+    matches = inputStr.match(/--\w+ [\w\d]+/g);
+    if (matches){
+      for (match of matches){
+        logger.debug(match)
+        match = String(match).split(" ");
+        flags[match[0].slice(2)] = match[1]
+      }
+    }
+    // Capture interior --flag flags
+    matches = inputStr.match(/--\w+(?= -)/g);
+    if (matches){
+      for (match of matches){
+        flags[match.slice(2)] = true;
+      }
+    }
+    // Capture final-position --flag flags
+    matches = inputStr.trim().match(/--\w+(?!.)/)
+    if (matches){
+      for (match of matches){
+        flags[match.slice(2)] = true;
+      }
+    }
+  }
+  catch(error){
+    logger.warn("Flag parsing failed; error:" + error.message)
+  }
+  logger.debug(JSON.stringify(flags));
+  return flags;
+}
 
 /**
  * Interrupts bot's timer for next message
@@ -181,7 +229,7 @@ function interruptTimer(bot){
 /**
  * Sends bot.nextMessage after delay given by bot.secondsDelay to channelID
  * @param {Discord.Client} bot 
- * @param {str} channelID
+ * @param {String} channelID
  */
 function delayedMessage(bot){
   if (!bot.isTimerOn){
@@ -205,17 +253,53 @@ function delayedMessage(bot){
  * Uses fs to load logger file asynchronously (Winston logger broken)
  * Uses global __dirname, messageLogName.
  * @param {Discord.Client} bot 
- * @param {str} channelID
+ * @param {String} channelID
+ * @param {Object} flags: the flags mapping flags (keys) to vals (or true)
  */
-function logDump(bot, channelID){
+function logDump(bot, channelID, flags){
   // Read log and dump
   fs.readFile(`${__dirname}/${loggerFileName}`, function(err, data){
     if (err) logger.error("Error caught reading logger file: " + err.message);
-    // Sanitize input
-    logString = '```JSON\n' + data.toString().replace("```","")
-                            .split('\n').slice(-bot.dumpLength-1,-1)
-                            .join('\n```\n```JSON\n') + '```';
-    logString = "Debug log (last " + bot.dumpLength + " lines):\n" + logString;
+    // Sanitize and split input into lines
+    ingestedLines =  data.toString().replace("```","").trim().split('\n');
+    // Filter according to flag, using broadest flag
+    hasTypeInLine = (type, line) => line.slice(0,11).indexOf(type) != -1
+    // Header string for log output
+    logName = "Logger default logs: ";
+    // Filtering if specified, in specific
+    if(flags["error"]){
+      ingestedLines = ingestedLines.filter(
+        line => hasTypeInLine("error", line));
+      logName = "Errors: ";
+    }
+    else if (flags["critical"]){
+      ingestedLines = ingestedLines.filter(
+        line => hasTypeInLine("critical", line));
+      logName = "Critical logs: ";
+    }
+    else if (flags["warn"]){
+      ingestedLines = ingestedLines.filter(
+        line => hasTypeInLine("warn", line));
+      logName = "Warnings: ";
+    }
+    else if(flags["info"]){
+      ingestedLines = ingestedLines.filter(
+        line => hasTypeInLine("info", line));
+      logName = "Info logs: ";
+    }
+    else if (flags["debug"]){
+      ingestedLines = ingestedLines.filter(
+        line => hasTypeInLine("debug", line));
+      logName = "Debug (only) logs: ";
+    }
+    // Build log string
+    if (ingestedLines.length == 0)
+      logString = "No logs found.";
+    else {
+      logString = '```JSON\n' + ingestedLines.slice(-bot.dumpLength)
+                              .join('\n```\n```JSON\n') + '```';
+      logString = `${logName} (last ` + bot.dumpLength + " lines):\n" + logString;
+    }
     // Dump to chat
     bot.sendMessage({
       to: channelID,
@@ -229,8 +313,8 @@ function logDump(bot, channelID){
  * Sets bot.learningTargetId and presence of bot using bot.setPresence.
  * Uses logger and fires messages to channelID
  * @param {Discord.Client} bot
- * @param {str} target: raw string (second argument of command sent to bot).
- * @param {str} channelID
+ * @param {String} target: raw string (second argument of command sent to bot).
+ * @param {String} channelID
  */ 
 function learnTarget(bot, target, channelID) {
   // Extract largest number, whether or not enclosed by <@ ... >
