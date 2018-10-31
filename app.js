@@ -97,7 +97,6 @@ bot.on('ready', function (evt) {
 });
 
 bot.on('message', function (user, userID, channelID, message, evt) {
-    logger.debug(bot.targetPlainString());
     // Ignore self messages
     if (userID == bot.id){
       logger.debug('Ignoring own message.')
