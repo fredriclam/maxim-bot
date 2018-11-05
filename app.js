@@ -39,10 +39,6 @@ const logger = createLogger({
     new transports.File({
       filename: loggerFileName,
       level: 'debug'
-    }),
-    new transports.File({
-      filename: loggerFileName,
-      level: 'debug'
     })
   ],
 })
@@ -159,7 +155,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           })
           break;
         case 'help': // Get command list
-          formattedList = cmd_list.map(s => '`!' + s + '` ').join(" ");
+          formattedList = cmd_list.sort().map(s => '`!' + s + '` ').join(" ");
           bot.sendMessage({
             to: channelID,
             message: `Here's the list of commands, although I'd rather sleep ${maxsnuzyenEmoji}: \n${formattedList}`
