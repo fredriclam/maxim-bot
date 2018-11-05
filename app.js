@@ -127,7 +127,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     // Capture ! commands
     if (msg.substring(0, 1) == '!') {
       // List of commands (manually updated)
-      cmd_list = ['learn', 'log', 'env', 'help', 'set', 'msgs', 'who', 'goodbot', 'badbot', 'maximback', 'dance'];
+      cmd_list = ['learn', 'log', 'env', 'help', 'set', 'msgs', 'who', 'goodbot', 'badbot', 'yikes', 'maximback', 'dance', 'db'];
       // Split message after '!' token by spaces
       let args = msg.substring(1).split(' ');
       // Parse main command !cmd
@@ -149,8 +149,9 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           bot.sendMessage({
             to: channelID,
             message: "```JSON\nEnvironment:\n" +
+              `Process architecture: ${process.env.PROCESSOR_ARCHITECTURE}\n` +
               `Default channel ID: ${weeabooChannelId}\n` +
-              `Channel ID: ${channelID}\n` +
+              `Current channel ID: ${channelID}\n` +
               `Bot ID: ${bot.id}\n` +
               `Followed: ${bot.learningTargetId} == ` +
               `"${bot.users[bot.learningTargetId].username}"\n` +
@@ -186,21 +187,44 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           })
           break;
         case 'goodbot': // Yay
+          bot.addReaction({
+            channelID: channelID,
+            messageID: evt.d.id,
+            reaction: "POGGERS:427999200337461248"
+          }, (err) => {
+            if (err) {console.log(err); logger.error(`Reaction error: ${err.message}`)}
+          });
           break;
         case 'badbot': // Aww
+          bot.addReaction({
+            channelID: channelID,
+            messageID: evt.d.id,
+            reaction: "maxsnuzyen:489283891807518720"
+          }, (err) => {
+            if (err) {console.log(err); logger.error(`Reaction error: ${err.message}`)}
+          });
+          break;
+        case 'yikes':
+          bot.addReaction({
+            channelID: channelID,
+            messageID: evt.d.id,
+            reaction: "monkaS:506646811688173579"
+          }, (err) => {
+            if (err) {console.log(err); logger.error(`Reaction error: ${err.message}`)}
+          });
           break;
         case 'maximback':
           interruptTimer(bot);
           break;
         case 'db': // Interactive debugger
-          if (flags.off){
+          if (flags.off && bot.isInteractive){
             bot.isInteractive = false;
             bot.sendMessage({
               to: channelID,
               message: "Finished interactive debug mode."
             });
           }
-          else if (flags.it){
+          else if (flags.it && !bot.isInteractive){
             bot.isInteractive = true;
             bot.sendMessage({
               to: channelID,
