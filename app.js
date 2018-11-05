@@ -72,7 +72,9 @@ settableProperties = {
   // Max dump length
   maxDumpLength: 10,
   // Next message bot will dump
-  nextMessage: defaultMessage
+  nextMessage: defaultMessage,
+  // Interactive debugging
+  isInteractive: false
 };
 
 // Append custom attributes to bot
@@ -125,7 +127,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     // Capture ! commands
     if (msg.substring(0, 1) == '!') {
       // List of commands (manually updated)
-      cmd_list = ['learn', 'log', 'env', 'help', 'set', 'msgs', 'who', 'goodbot', 'badbot', 'maximback'];
+      cmd_list = ['learn', 'log', 'env', 'help', 'set', 'msgs', 'who', 'goodbot', 'badbot', 'maximback', 'dance'];
       // Split message after '!' token by spaces
       let args = msg.substring(1).split(' ');
       // Parse main command !cmd
@@ -190,11 +192,66 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         case 'maximback':
           interruptTimer(bot);
           break;
+        case 'db': // Interactive debugger
+          if (flags.off){
+            bot.isInteractive = false;
+            bot.sendMessage({
+              to: channelID,
+              message: "Finished interactive debug mode."
+            });
+          }
+          else if (flags.it){
+            bot.isInteractive = true;
+            bot.sendMessage({
+              to: channelID,
+              message: "Entered interactive debug mode."
+            });
+          }
+          break;
+        case 'dance':
+          bot.sendMessage({
+            to: channelID,
+            embed: {
+              "url": "https://discordapp.com",
+              "image": {
+                "url": "https://media.tenor.com/images/2ef0284a5bdb2a8c5346699814059570/tenor.gif"
+              },
+              "author": {
+                "name": bot.users[userID].username
+              },
+              "fields": []
+            }
+          }, (err) => {if (err) {logger.error(err)}});
+          // Replace message
+          // bot.deleteMessage({
+          //     channelID: channelID,
+          //     messageID: evt.d.id
+          //   }, (err, data) => {
+          //     if (err) logger.error(`Error encountered while replacing message: ${err.message}`);
+          //   });
+          // logger.info("Overwrote !dance");
+          break;
         default:
           bot.sendMessage({
             to: channelID,
             message: `Wait what ${maxsnuzyenEmoji}`
           })
+      }
+    }
+    else if (bot.isInteractive){ //Not !command
+      // Handle interactive commands
+      logger.debug(`Interactive execution: ${message}`)
+      try{
+        bot.sendMessage({
+          to: channelID,
+          message: `>>> ${eval(message)}`
+        });
+      }
+      catch (e){
+        bot.sendMessage({
+          to: channelID,
+          message: `Error: ${e.message}`
+        })
       }
     }
 });
