@@ -6,6 +6,7 @@
   "author": "fredstah and bois",
   "dependencies": {
     "discord.io": "github:woor/discord.io#gateway_v6",
+    "mongodb": "^3.1.8",
     "winston": "^3.1.0"
   }
 }
