@@ -5,7 +5,7 @@
   "main": "bot.js",
   "author": "fredstah and bois",
   "dependencies": {
-    "discord.io": "^2.5.3",
+    "discord.io": "github:woor/discord.io#gateway_v6",
     "winston": "^3.1.0",
     "lodash": ">=4.17.11"
   }
