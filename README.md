@@ -1,6 +1,6 @@
 # Maxim-Bot
 
-<img src="https://lh4.googleusercontent.com/Q-969M6qGMUpQWH5TqUXVY0wNvmFOiNX_ZrDbfTMg72ERJXq9RVwnljjW9kmhFkWahYwKA4DrAuvm1YS479Z=w3246-h1564" width="150px" height="150px">
+<img src="https://www.cs.mcgill.ca/~jma229/images/robot.png" width="150px" height="150px">
 
 
 Picture this. The energy of the party, Maxim, has gone missing. Fear not! Maxim-bot is here to substitute the gaping hole in your heart.

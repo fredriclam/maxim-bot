@@ -7,6 +7,24 @@ var mongo = require('mongodb');
 var cmds = require('./cmds.js');
 var config = require('./config.js')
 
+<<<<<<< HEAD
+=======
+// Constant IDs
+const weeabooChannelId = "215694187977375746"
+const MAX_ID = "163475101046538240";
+const FREDDY_ID = "265678340692770816";
+// Default quip
+let defaultMessage = 'Maxim afk';
+let maxsnuzyenEmoji = '<:maxsnuzyen:489283891807518720>';
+let coolstorybobEmoji = '<:coolstoryfred:503693902730100736>'
+// Message log file name
+messageLogName = 'messages.log'
+// Define logger file names
+loggerFileName = './logger.log'
+// Users log file name
+userLogName = './users.log'
+
+>>>>>>> 442be796deb5c9ca116b3e3ee7fc4c33d5bf3fe3
 // Use winston.format.printf for configuring logger format
 const loggingFormat = printf(info => {
   return `"${info.level}" ${info.timestamp} >>> ${info.message}`;
@@ -25,7 +43,11 @@ const logger = createLogger({
       level: 'debug'
     }),
     new transports.File({
+<<<<<<< HEAD
       filename: config.loggerFileName,
+=======
+      filename: loggerFileName,
+>>>>>>> 442be796deb5c9ca116b3e3ee7fc4c33d5bf3fe3
       level: 'debug'
     })
   ],
@@ -42,11 +64,19 @@ settableProperties = {
   // String proxy for invoking bot -- function should be bound to bot
   targetPlainString: () => bot.users[bot.learningTargetId].username,
   // Message that bot will fire next
+<<<<<<< HEAD
   nextMessage: config.defaultMessage,
   // Flag to check for timer
   isTimerOn: false,
   // Default learning target
   learningTargetId: config.maxId,
+=======
+  nextMessage: defaultMessage,
+  // Flag to check for timer
+  isTimerOn: false,
+  // Default learning target
+  learningTargetId: MAX_ID,
+>>>>>>> 442be796deb5c9ca116b3e3ee7fc4c33d5bf3fe3
   // Default bank of quips is empty
   quipList: [],
   // Timer delay (seconds)
@@ -55,6 +85,7 @@ settableProperties = {
   dumpLength: 5,
   // Max dump length
   maxDumpLength: 10,
+<<<<<<< HEAD
   // Interactive debugging
   isInteractive: false
 };
@@ -64,6 +95,19 @@ for (propKey in settableProperties){
   bot[propKey] = settableProperties[propKey];
 }
 
+=======
+  // Next message bot will dump
+  nextMessage: defaultMessage,
+  // Interactive debugging
+  isInteractive: false
+};
+
+// Append custom attributes to bot
+for (propKey in settableProperties){
+  bot[propKey] = settableProperties[propKey];
+}
+
+>>>>>>> 442be796deb5c9ca116b3e3ee7fc4c33d5bf3fe3
 bot.on('disconnect', function(errMsg, code) {
   logger.error(`Disconnected with error message ${errMsg} and code ${code}`);
 });
@@ -77,7 +121,11 @@ bot.on('ready', function (evt) {
       }
     })
     // Read chat history
+<<<<<<< HEAD
     asyncParseToLog(config.weeabooChannelId, bot.learningTargetId);
+=======
+    asyncParseToLog(weeabooChannelId, bot.learningTargetId);
+>>>>>>> 442be796deb5c9ca116b3e3ee7fc4c33d5bf3fe3
 });
 
 bot.on('message', function (user, userID, channelID, message, evt) {
@@ -108,6 +156,11 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
     // Capture ! commands
     if (msg.substring(0, 1) == '!') {
+<<<<<<< HEAD
+=======
+      // List of commands (manually updated)
+      cmd_list = ['learn', 'log', 'env', 'help', 'set', 'msgs', 'who', 'goodbot', 'badbot', 'yikes', 'maximback', 'dance', 'db'];
+>>>>>>> 442be796deb5c9ca116b3e3ee7fc4c33d5bf3fe3
       // Split message after '!' token by spaces
       let args = msg.substring(1).split(' ');
       // Parse main command !cmd
@@ -116,6 +169,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       flags = parseFlags(args.slice(1).join(" "));
       // Log total input
       logger.debug(`Inputs parsed: ${args}, with option flags (--x): ${JSON.stringify(flags)}`);
+<<<<<<< HEAD
       // Commands API
       cmds.exec(cmd, {
         bot: bot,
@@ -130,6 +184,135 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       })
     }
     else if (bot.isInteractive){ // Interactive mode (filters out ! lines)
+=======
+
+      switch(cmd) {
+        case 'learn': // Switch target
+          learnTarget(bot, args[1], channelID);
+          break;
+        case 'log': // Check logs
+          // Parse additional args
+          logDump(bot, channelID, flags);
+          break;
+        case 'env': // Return environment
+          bot.sendMessage({
+            to: channelID,
+            message: "```JSON\nEnvironment:\n" +
+              `Process architecture: ${process.env.PROCESSOR_ARCHITECTURE}\n` +
+              `Default channel ID: ${weeabooChannelId}\n` +
+              `Current channel ID: ${channelID}\n` +
+              `Bot ID: ${bot.id}\n` +
+              `Followed: ${bot.learningTargetId} == ` +
+              `"${bot.users[bot.learningTargetId].username}"\n` +
+              "```"
+          })
+          break;
+        case 'help': // Get command list
+          formattedList = cmd_list.sort().map(s => '`!' + s + '` ').join(" ");
+          bot.sendMessage({
+            to: channelID,
+            message: `Here's the list of commands, although I'd rather sleep ${maxsnuzyenEmoji}: \n${formattedList}`
+          })
+          break;
+        case 'set': // Set properties
+          validateAndSet(bot, flags);
+          break;
+        case 'msgs': // Upload messages list
+          bot.uploadFile({
+            to: channelID,
+            file: messageLogName,
+            message: "Message list uploaded."
+          })
+          break;
+        case 'who': // Return who is on channel
+          fs.writeFile(`${userLogName}`, JSON.stringify(bot.users), (err, data) => {
+            if (err)
+              logger.error("Error writing users file: " + err.message);
+            bot.uploadFile({
+                to: channelID,
+                file: userLogName,
+                message: "Users file uploaded."
+            })
+          })
+          break;
+        case 'goodbot': // Yay
+          bot.addReaction({
+            channelID: channelID,
+            messageID: evt.d.id,
+            reaction: "POGGERS:427999200337461248"
+          }, (err) => {
+            if (err) {console.log(err); logger.error(`Reaction error: ${err.message}`)}
+          });
+          break;
+        case 'badbot': // Aww
+          bot.addReaction({
+            channelID: channelID,
+            messageID: evt.d.id,
+            reaction: "maxsnuzyen:489283891807518720"
+          }, (err) => {
+            if (err) {console.log(err); logger.error(`Reaction error: ${err.message}`)}
+          });
+          break;
+        case 'yikes':
+          bot.addReaction({
+            channelID: channelID,
+            messageID: evt.d.id,
+            reaction: "monkaS:506646811688173579"
+          }, (err) => {
+            if (err) {console.log(err); logger.error(`Reaction error: ${err.message}`)}
+          });
+          break;
+        case 'maximback':
+          interruptTimer(bot);
+          break;
+        case 'db': // Interactive debugger
+          if (flags.off && bot.isInteractive){
+            bot.isInteractive = false;
+            bot.sendMessage({
+              to: channelID,
+              message: "Finished interactive debug mode."
+            });
+          }
+          else if (flags.it && !bot.isInteractive){
+            bot.isInteractive = true;
+            bot.sendMessage({
+              to: channelID,
+              message: "Entered interactive debug mode."
+            });
+          }
+          break;
+        case 'dance':
+          bot.sendMessage({
+            to: channelID,
+            embed: {
+              "url": "https://discordapp.com",
+              "image": {
+                "url": "https://media.tenor.com/images/2ef0284a5bdb2a8c5346699814059570/tenor.gif"
+              },
+              "author": {
+                "name": bot.users[userID].username
+              },
+              "fields": []
+            }
+          }, (err) => {if (err) {logger.error(err)}});
+          // Replace message
+          // bot.deleteMessage({
+          //     channelID: channelID,
+          //     messageID: evt.d.id
+          //   }, (err, data) => {
+          //     if (err) logger.error(`Error encountered while replacing message: ${err.message}`);
+          //   });
+          // logger.info("Overwrote !dance");
+          break;
+        default:
+          bot.sendMessage({
+            to: channelID,
+            message: `Wait what ${maxsnuzyenEmoji}`
+          })
+      }
+    }
+    else if (bot.isInteractive){ //Not !command
+>>>>>>> 442be796deb5c9ca116b3e3ee7fc4c33d5bf3fe3
       // Handle interactive commands
       logger.debug(`Interactive execution: ${message}`)
       try{
@@ -148,6 +331,28 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 });
 
 /**
+<<<<<<< HEAD
+=======
+ * Validates and sets bot properties according to flags if property is settable.
+ * No input sanitization implemented yet, so use at your own risk.
+ * Refers to settableProperties's properties
+ * @param {Discord.Client} bot
+ * @param {Object} flags : the flags as keys to value (or true for single flags)
+ */
+function validateAndSet(bot, flags){
+  logger.warn("Set method called. Hope you know what you're doing.");
+  for (propKey in settableProperties){
+    if (flags[propKey.toLowerCase()]){
+      // Restrictions for each property
+      // Set property
+      bot[propKey] = flags[propKey.toLowerCase()];
+      logger.info(`${propKey} changed to ${bot[propKey]}`);
+    }
+  }
+}
+
+/**
+>>>>>>> 442be796deb5c9ca116b3e3ee7fc4c33d5bf3fe3
  * Parses CLI-style flags into an object
  * Example: --a b --c --d 3 --e
  * would return {"a":"b","d":"3","c":true,"e":true}
@@ -188,6 +393,7 @@ function parseFlags(inputStr){
   }
   return flags;
 }
+<<<<<<< HEAD
 
 /**
  * Sends bot.nextMessage after delay given by bot.secondsDelay to channelID
@@ -238,6 +444,192 @@ function botEmoji(id){
 
 // Asynchronously parse target user's chat history into log
 function asyncParseToLog(channelID, targetUserID, logger){
+=======
+
+/**
+ * Interrupts bot's timer for next message
+ * @param {Discord.Client} bot
+ */
+function interruptTimer(bot){
+  if (bot.isTimerOn){
+    try{
+      clearTimeout(bot.timer);
+      logger.info('Timer stopped.');
+    }
+    catch(error){
+      logger.info("Probably timer didn't exist; following timer stop error was caught: " + error.message)
+    }
+    bot.isTimerOn = false;
+  }
+}
+
+/**
+ * Sends bot.nextMessage after delay given by bot.secondsDelay to channelID
+ * @param {Discord.Client} bot
+ * @param {String} channelID
+ */
+function delayedMessage(bot, channelID){
+  if (!bot.isTimerOn){
+    bot.isTimerOn = true;
+    // Set new timer
+    bot.timer = setTimeout(function () {
+        bot.isTimerOn = false;
+        bot.sendMessage({
+            to: channelID,
+            message: bot.nextMessage
+        });
+    }, bot.secondsDelay);
+    logger.info('Timer started');
+  }
+}
+
+/**
+ * Dumps log to Discord chat, using (optional) flags to filter results.
+ *
+ * Warning: dependent on logger file formatting to filter log entries
+ * by flag.
+ *
+ * Uses logger, and fires message to channelID.
+ * Uses fs to load logger file asynchronously (Winston logger broken)
+ * Uses global __dirname, messageLogName.
+ * @param {Discord.Client} bot
+ * @param {String} channelID
+ * @param {Object} flags: the flags mapping flags (keys) to vals (or true)
+ */
+function logDump(bot, channelID, flags){
+  // File request
+  if(flags["all"]){
+    bot.uploadFile({
+      to: channelID,
+      file: loggerFileName,
+      message: "Logger logs uploaded."
+    })
+  }
+  // Read log and dump
+  fs.readFile(`${__dirname}/${loggerFileName}`, function(err, data){
+    if (err) logger.error("Error caught reading logger file: " + err.message);
+    // Sanitize and split input into lines
+    ingestedLines =  data.toString().replace("```","").trim().split('\n');
+    // Filter according to flag, using broadest flag
+    hasTypeInLine = (type, line) => line.slice(0,11).indexOf(type) != -1
+    // Header string for log output
+    logName = "Logger default logs: ";
+    // Filtering if specified, in specific
+    if(flags["error"]){
+      ingestedLines = ingestedLines.filter(
+        line => hasTypeInLine("error", line));
+      logName = "Errors: ";
+    }
+    else if (flags["critical"]){
+      ingestedLines = ingestedLines.filter(
+        line => hasTypeInLine("critical", line));
+      logName = "Critical logs: ";
+    }
+    else if (flags["warn"]){
+      ingestedLines = ingestedLines.filter(
+        line => hasTypeInLine("warn", line));
+      logName = "Warnings: ";
+    }
+    else if(flags["info"]){
+      ingestedLines = ingestedLines.filter(
+        line => hasTypeInLine("info", line));
+      logName = "Info logs: ";
+    }
+    else if (flags["debug"]){
+      ingestedLines = ingestedLines.filter(
+        line => hasTypeInLine("debug", line));
+      logName = "Debug (only) logs: ";
+    }
+    // Build log string
+    if (ingestedLines.length == 0)
+      logString = "No logs found.";
+    else {
+      logString = '```JSON\n' + ingestedLines.slice(-bot.dumpLength)
+                              .join('\n```\n```JSON\n') + '```';
+      logString = `${logName} (last ` + bot.dumpLength + " lines):\n" + logString;
+    }
+    // Dump to chat
+    bot.sendMessage({
+      to: channelID,
+      message: logString
+    }, function(err) {
+      if (err){
+        logger.error("Error dumping logs: " + err.message);
+        bot.sendMessage({
+          to: channelID,
+          message: "Failed to dump logs. Logs may be too big."
+        })
+      }})
+  })
+}
+
+/**
+ * Switches bot to a new target.
+ * Sets bot.learningTargetId and presence of bot using bot.setPresence.
+ * Uses logger and fires messages to channelID
+ * @param {Discord.Client} bot
+ * @param {String} target: raw string (second argument of command sent to bot).
+ * @param {String} channelID
+ */
+function learnTarget(bot, target, channelID) {
+  // Extract largest number, whether or not enclosed by <@ ... >
+  let re = new RegExp(/\D*(\d+)/);
+  extractedId = re.exec(target);
+  logger.debug("ExtractedID + target: "+ extractedId + target)
+  let msg = {to: channelID}
+  if (!(extractedId === null)){
+    let newLearningTargetId = extractedId[1];
+    // Update server's user list
+    bot.getAllUsers((err) => { if (err) logger.error("Error caught in learnTarget: " + err.message); } );
+    // Accept new learning target if user exists
+    if (bot.users[newLearningTargetId] !== undefined){
+      bot.learningTargetId = newLearningTargetId
+      bot.setPresence({
+        game:{
+          name: "for " + bot.users[bot.learningTargetId].username
+        }
+      })
+      // Parse log
+      asyncParseToLog(channelID, newLearningTargetId);
+      logger.info('New learning target: ' + bot.users[newLearningTargetId].username)
+      msg.message = 'Now following <@' + newLearningTargetId + '>... <:maximwhatsthis:484993112729583618>'
+    }
+    else{
+      logger.warn('Invalid learning target selected')
+      msg.message = "<@" + userID + "> Wait, who's that? Tag 'em"
+    }
+  }
+  else {
+    logger.warn('Unexpected learning target')
+    msg.message = 'Technically, that ID is invalid <:maximwhatsthis:484993112729583618>'
+  }
+  // Fire message
+  bot.sendMessage(msg)
+}
+
+/**
+ * Pick a quip and load it into bot.nextMessage
+ * Uses fs to load file message log file asynchronously.
+ * Uses global __dirname, messageLogName.
+ * @param {Discord.Client} bot
+ */
+function pickQuip(bot){
+  fs.readFile( `${__dirname}/${messageLogName}`, function (err, data) {
+    if (err) logger.error("Error caught reading message log: " + err.message);
+    // Read all quips from data
+    bot.quipList = data.toString().split('\n');
+    // Filter out useless elements and !commands
+    quipListFiltered = bot.quipList.filter(quip => quip.length > 0 && quip.charAt(0) != '!')
+    // Load bot's next message
+    if (quipListFiltered && quipListFiltered.length != 0){
+      bot.nextMessage = quipListFiltered[Math.floor(quipListFiltered.length * Math.random())] + ' ' + botEmoji(bot.learningTargetId);
+    }
+  });
+}
+
+// Asynchronously parse target user's chat history into log
+function asyncParseToLog(channelID, targetUserID){
+>>>>>>> 442be796deb5c9ca116b3e3ee7fc4c33d5bf3fe3
   // Read chat history
 let allBatches = [];
 let beginningOfMessages = true;
@@ -252,7 +644,11 @@ let allMessages = getMessagesCallback(allBatches, beginningOfMessages, prevMessa
       }
 
 
+<<<<<<< HEAD
       fs.writeFile(`${config.messageLogName}`, formattedMessageLog, (err) => {
+=======
+      fs.writeFile(`${messageLogName}`, formattedMessageLog, (err) => {
+>>>>>>> 442be796deb5c9ca116b3e3ee7fc4c33d5bf3fe3
         if (err) throw err;
         logger.info('The file has been saved!');
       });
@@ -294,4 +690,12 @@ function getMessagesCallback(allBatches, beginningOfMessages, prevMessageID, cha
         }
         return allBatches;
     });
+<<<<<<< HEAD
 }
+=======
+}
+
+function botEmoji(id){
+  return (id == FREDDY_ID)? coolstorybobEmoji : maxsnuzyenEmoji;
+}
+>>>>>>> 442be796deb5c9ca116b3e3ee7fc4c33d5bf3fe3
