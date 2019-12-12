@@ -1,4 +1,5 @@
-var Discord = require('discord.io');
+const Discord = require('discord.js');
+
 var {createLogger, format, transports} = require('winston');
 var {combine, printf, timestamp} = format;
 var auth = require('./auth.json');
@@ -44,15 +45,14 @@ const logger = createLogger({
 })
 
 // Initialize Discord Bot
-var bot = new Discord.Client({
-   token: auth.token,
-   autorun: true,
-});
+// !refactor_missing:  (don't know what autorun was for on old obt)
+var client = new Discord.Client();
+client.login(auth.token);
 
 // Bot settable propreties
 settableProperties = {
   // String proxy for invoking bot -- function should be bound to bot
-  targetPlainString: () => bot.users[bot.learningTargetId].username,
+  targetPlainString: () => client.users[client.learningTargetId].username,
   // Message that bot will fire next
   nextMessage: defaultMessage,
   // Flag to check for timer
@@ -75,23 +75,26 @@ settableProperties = {
 
 // Append custom attributes to bot
 for (propKey in settableProperties){
-  bot[propKey] = settableProperties[propKey];
+  client[propKey] = settableProperties[propKey];
 }
 
-bot.on('disconnect', function(errMsg, code) {
-  logger.error(`Disconnected with error message ${errMsg} and code ${code}`);
+client.on('disconnect', (event) => {
+  let cleanly = (event.wasClean)? 'cleanly' : 'uncleanly';
+  logger.error(`Disconnected cleanly? [${cleanly}]: (with error message ${event.reason} and code ${event.code}`);
 });
 
-bot.on('ready', function (evt) {
-    logger.info(`*** Logged in as: ${bot.username} (id:${bot.id}) ***`);
+client.on('ready', () => {
+    logger.info(`*** Logged in as: ${client.user.tag} (id:${client.user.id}) ***`);
     // Set presence shown on Discord
-    bot.setPresence({
+    client.setPresence({
       game:{
         name: "for mnhn329" // "Hide and Seek with "
-      }
-    })
+      }, 
+      status: 'idle'
+    }).then(console.log)
+    .catch(console.error);
     // Read chat history
-    asyncParseToLog(weeabooChannelId, bot.learningTargetId);
+    asyncParseToLog(weeabooChannelId, client.learningTargetId);
 });
 
 bot.on('message', function (user, userID, channelID, message, evt) {
